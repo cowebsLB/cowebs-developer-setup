@@ -6,11 +6,28 @@ Install or update Microsoft App Installer, open a new terminal, and run `winget 
 
 ## The release payload cannot be downloaded
 
-Confirm that GitHub Releases is reachable and that v5.0.0 is still published at the official `cowebsLB/cowebs-developer-setup` repository. The bootstrap intentionally does not fall back to `main`.
+Confirm that GitHub Releases is reachable and that v6.0.0 is published at the official `cowebsLB/cowebs-developer-setup` repository. The bootstrap intentionally does not fall back to `main`.
 
 ## Checksum mismatch
 
-Do not bypass the check. Delete the downloaded BAT and obtain a fresh copy from the official v5.0.0 release. A mismatch means the BAT and ZIP do not belong to the same release or the payload changed.
+Do not bypass the check. Delete the downloaded BAT and obtain a fresh copy from the official v6.0.0 release. A mismatch means the BAT and ZIP do not belong to the same release or the payload changed.
+
+## GitHub Actions reports that Get-FileHash is unavailable
+
+This affected the v5 bootstrap when Windows PowerShell inherited a restricted module path from `pwsh`. Version 6 uses .NET APIs for download, hashing, and extraction and does not require `Get-FileHash`, `Invoke-WebRequest`, or `Expand-Archive`. Upgrade the BAT instead of changing the runner to allow an insecure Node version or weakening checksum verification.
+
+## Two selected packs conflict
+
+The engine rejects incompatible plans before installation. For example, the default AI profile uses the modern `uv` environment and cannot be combined with `ai-conda`. Choose one strategy:
+
+```bat
+master-setup.bat --profile ai --dry-run
+master-setup.bat --profile ai --essentials-only --pack ai-conda --dry-run
+```
+
+## A pack name is unknown
+
+Run `master-setup.bat --list-packs` and use the exact lowercase pack key. Repeat `--pack NAME` to add more than one.
 
 ## A package fails
 

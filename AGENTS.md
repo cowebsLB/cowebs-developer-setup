@@ -4,6 +4,7 @@
 - Never execute mutable default-branch code from a bootstrap; use pinned release assets with verified hashes.
 - Keep logical package and profile intent in `config/`; keep package-manager and OS behavior in `src/<platform>/`.
 - New adapters must consume shared logical keys and must not fork profile definitions without a documented platform exception.
+- Schema-v2 package dependencies and conflicts must reference known logical keys; conflicts must remain symmetric, and role-specific additions should be modeled as reusable packs rather than copied package lists.
 - Run `tests/run-tests.ps1` after manifest, bootstrap, Windows engine, build, or documentation-contract changes.
 - Real installation tests belong in a disposable VM or sandbox, not on a developer's active workstation.
 - Never log credentials, authentication output, cookies, keys, or tokens.

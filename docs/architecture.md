@@ -13,17 +13,17 @@ master-setup.bat
 
 ## Bootstrap layer
 
-`master-setup.bat` is the only required Windows download. It parses the public CLI, renders the COWEBS.LB banner, creates a randomized temporary session, downloads the v5.0.0 asset, verifies its hard-coded SHA-256, extracts it, invokes the Windows adapter, and removes only that session directory.
+`master-setup.bat` is the only required Windows download. It parses the public CLI, renders the COWEBS.LB banner, creates a randomized temporary session, downloads the v6.0.0 asset, verifies its hard-coded SHA-256, extracts it, invokes the Windows adapter, and removes only that session directory. Download, hashing, and ZIP extraction use .NET framework APIs rather than auto-loaded PowerShell modules, which keeps the handoff stable under restricted `PSModulePath` environments. Explicit pack names cross this boundary through `COWEBS_SETUP_PACKS`, avoiding command-line interpolation.
 
 ## Shared manifest layer
 
-`packages.json` assigns stable logical keys such as `git`, `node`, and `docker`. Each package contains platform mappings. Windows uses `platforms.windows.wingetId`; future adapters can add Homebrew, APT, DNF, Snap, or Flatpak fields.
+`packages.json` assigns stable logical keys such as `git`, `node`, and `docker`. Schema v2 also records tier, categories, license family, install strategy, dependencies, conflicts, conditions, and optional platform-specific installer overrides. Windows uses `platforms.windows.wingetId`; future adapters can add Homebrew, APT, DNF, Snap, or Flatpak fields.
 
-`profiles.json` groups logical keys into developer profiles. Composite profiles inherit other profiles. The adapter resolves inheritance recursively and de-duplicates keys while preserving first-seen order.
+`profiles.json` defines shared core packages, reusable use-case packs, role essentials, recommended packs, optional packs, and composite inheritance. The adapter resolves profile inheritance and package dependencies recursively, de-duplicates keys while preserving first-seen order, and rejects conflicts before installation.
 
 ## Platform adapter layer
 
-The Windows PowerShell adapter owns Winget behavior, PATH refresh, Windows-specific configuration, folders, restart handling, and persistent logs. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
+The Windows PowerShell adapter owns Winget behavior, pack selection, plan validation, PATH refresh, Windows-specific configuration, folders, restart handling, authorized-lab confirmation, and persistent logs. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
 
 ## Release layer
 

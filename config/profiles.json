@@ -1,43 +1,98 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "corePackages": ["git", "github-cli", "vscode", "powershell", "windows-terminal", "seven-zip", "jq", "ripgrep", "fd", "git-lfs", "openssl"],
+  "packs": {
+    "backend-node": { "name": "Node.js backend", "packages": ["node", "pnpm"] },
+    "backend-python": { "name": "Modern Python backend", "packages": ["uv", "ruff"] },
+    "backend-java": { "name": "Java backend", "packages": ["openjdk"] },
+    "backend-dotnet": { "name": ".NET backend", "packages": ["dotnet-sdk"] },
+    "backend-go": { "name": "Go backend", "packages": ["go"] },
+    "backend-rust": { "name": "Rust backend", "packages": ["rustup"] },
+    "backend-php": { "name": "PHP backend", "packages": ["php"] },
+    "backend-databases": { "name": "Additional database clients", "packages": ["redis-insight", "mongodb-compass", "mysql-workbench"] },
+    "api-postman": { "name": "Postman API client", "packages": ["postman"] },
+    "frontend-design": { "name": "Frontend design handoff", "packages": ["figma"] },
+    "frontend-alt-runtimes": { "name": "Bun and Deno runtimes", "packages": ["bun", "deno"] },
+    "frontend-tunnels": { "name": "Local tunnel tools", "packages": ["cloudflared", "ngrok"] },
+    "devops-linux": { "name": "WSL and Ubuntu", "packages": ["wsl", "ubuntu-wsl"] },
+    "devops-kubernetes": { "name": "Kubernetes workstation", "packages": ["kubectl", "helm", "k9s", "kubectx", "kind", "flux"] },
+    "devops-iac": { "name": "Infrastructure as Code", "packages": ["opentofu", "tflint", "vault", "packer"] },
+    "devops-security": { "name": "Supply-chain and secrets security", "packages": ["trivy", "sops", "age"] },
+    "terraform-compat": { "name": "Terraform compatibility", "packages": ["terraform"] },
+    "cloud-aws": { "name": "Amazon Web Services", "packages": ["aws-cli"] },
+    "cloud-azure": { "name": "Microsoft Azure", "packages": ["azure-cli"] },
+    "cloud-gcp": { "name": "Google Cloud", "packages": ["google-cloud-cli"] },
+    "ai-python-modern": { "name": "Modern Python AI environment", "packages": ["uv", "ruff", "jupyterlab"] },
+    "ai-conda": { "name": "Conda scientific environment", "packages": ["miniconda", "jupyterlab"] },
+    "ai-local-models": { "name": "Local AI models", "packages": ["ollama"] },
+    "ai-mlops": { "name": "ML experiment and data versioning", "packages": ["dvc"] },
+    "ai-r": { "name": "R data science", "packages": ["r", "rstudio"] },
+    "cyber-web": { "name": "Authorized web security testing", "packages": ["zap", "burp-community"] },
+    "cyber-lab": { "name": "Authorized Kali WSL lab", "packages": ["wsl", "kali-wsl"] },
+    "game-creative": { "name": "Game creative toolkit", "packages": ["blender", "krita", "audacity", "obs-studio", "renderdoc", "inkscape"] },
+    "game-2d-extra": { "name": "Additional 2D game tools", "packages": ["gimp", "tiled"] },
+    "game-audio-extra": { "name": "Additional game audio tools", "packages": ["lmms"] },
+    "game-blockbench": { "name": "Low-poly modeling with Blockbench", "packages": ["blockbench"] },
+    "game-unity": { "name": "Unity development", "packages": ["unity-hub", "visual-studio-game"] },
+    "game-godot": { "name": "Godot development", "packages": ["godot"] },
+    "game-unreal": { "name": "Unreal Engine development", "packages": ["epic-games-launcher", "visual-studio-game"] }
+  },
   "profiles": {
     "backend": {
       "name": "Backend Developer",
-      "packages": ["git", "github-cli", "vscode", "node", "python", "openjdk", "docker", "postgresql", "postman"]
+      "packages": ["docker", "postgresql", "dbeaver", "bruno"],
+      "recommendedPacks": ["backend-node"],
+      "optionalPacks": ["backend-python", "backend-java", "backend-dotnet", "backend-go", "backend-rust", "backend-php", "backend-databases", "api-postman"]
     },
     "frontend": {
       "name": "Frontend Developer",
-      "packages": ["git", "github-cli", "vscode", "node", "yarn", "pnpm", "chrome", "firefox", "postman"]
+      "packages": ["node", "pnpm", "chrome", "firefox", "bruno"],
+      "recommendedPacks": ["frontend-design"],
+      "optionalPacks": ["frontend-alt-runtimes", "frontend-tunnels", "api-postman"]
     },
     "android": {
       "name": "Android Developer",
-      "packages": ["git", "github-cli", "vscode", "android-studio", "openjdk", "node", "python", "docker"]
+      "packages": ["android-studio", "openjdk", "scrcpy"],
+      "recommendedPacks": [],
+      "optionalPacks": []
     },
     "devops": {
       "name": "DevOps Engineer",
-      "packages": ["git", "github-cli", "vscode", "docker", "kubectl", "helm", "terraform", "aws-cli", "azure-cli", "python", "node"]
+      "packages": ["docker", "task", "yq"],
+      "recommendedPacks": ["devops-linux", "devops-kubernetes", "devops-iac", "devops-security"],
+      "optionalPacks": ["terraform-compat", "cloud-aws", "cloud-azure", "cloud-gcp"]
     },
     "ai": {
       "name": "AI / Machine Learning",
-      "packages": ["git", "github-cli", "vscode", "python", "miniconda", "jupyterlab", "docker", "node"]
+      "packages": ["docker"],
+      "recommendedPacks": ["ai-python-modern", "ai-mlops"],
+      "optionalPacks": ["ai-conda", "ai-local-models", "ai-r", "cloud-aws", "cloud-azure", "cloud-gcp"]
     },
     "cyber": {
       "name": "Cybersecurity",
-      "packages": ["git", "github-cli", "vscode", "python", "nmap", "wireshark"]
+      "packages": ["sysinternals", "nmap", "wireshark"],
+      "recommendedPacks": ["cyber-web"],
+      "optionalPacks": ["cyber-lab"]
     },
     "game": {
       "name": "Game Development",
-      "packages": ["git", "vscode", "unity-hub", "blender", "godot"]
+      "packages": [],
+      "recommendedPacks": ["game-creative"],
+      "optionalPacks": ["game-unity", "game-godot", "game-unreal", "game-2d-extra", "game-audio-extra", "game-blockbench"]
     },
     "fullstack": {
       "name": "Full Stack",
       "extends": ["backend", "frontend"],
-      "packages": []
+      "packages": [],
+      "recommendedPacks": [],
+      "optionalPacks": ["frontend-tunnels", "backend-python", "backend-java", "backend-dotnet", "backend-go", "backend-rust", "backend-php", "backend-databases", "api-postman"]
     },
     "everything": {
-      "name": "Everything",
+      "name": "Everything Essentials",
       "extends": ["backend", "frontend", "android", "devops", "ai", "cyber", "game"],
-      "packages": []
+      "packages": [],
+      "recommendedPacks": [],
+      "optionalPacks": ["cloud-aws", "cloud-azure", "cloud-gcp", "ai-local-models", "ai-r", "cyber-lab", "game-unity", "game-godot", "game-unreal"]
     }
   }
 }

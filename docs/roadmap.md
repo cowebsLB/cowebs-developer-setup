@@ -10,9 +10,10 @@
 
 - JSON Schema files and editor validation.
 - Platform-aware package exclusions and alternatives.
+- Per-platform mappings for all schema-v2 packages and explicit unsupported-package reporting.
 - Shared configuration intents with platform-specific implementations.
 - Release signing and published checksums.
 - Resumable setup state for interrupted installations.
 - Clean VM/sandbox installation matrix.
 
-Windows real-install validation remains the immediate release-quality follow-up after v5.0.0 dry-run validation.
+Windows real-install validation in a disposable VM remains the immediate release-quality follow-up after v6.0.0 dry-run and live-ID validation.

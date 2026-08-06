@@ -2,6 +2,39 @@
 
 All notable changes follow semantic versioning.
 
+## [6.0.0] - 2026-08-07
+
+### Added
+
+- Expanded the Windows catalog from 26 to 86 live-verified exact Winget packages.
+- Added 34 reusable use-case packs covering language stacks, databases, frontend handoff, tunnels, WSL, Kubernetes, IaC, cloud providers, AI/ML, authorized security testing, and game production.
+- Added repeatable `--pack NAME`, `--essentials-only`, and `--list-packs` bootstrap options.
+- Added package tiers, categories, license metadata, dependencies, conflicts, install conditions, and package-specific Winget overrides.
+- Added README status, release, license, platform, and manifest-schema badges.
+
+### Changed
+
+- Upgraded both shared manifests to schema v2 and separated shared core tools, role essentials, recommendations, and optional use cases.
+- Made role defaults professional but bounded; heavy engines, cloud CLIs, alternate runtimes, and specialized labs remain opt-in.
+- Renamed the broad profile to `Everything Essentials` and limited its default plan to the recommended cross-role toolset.
+- Updated the Windows engine to resolve dependencies recursively, deduplicate packages, merge inherited packs, and describe relevant hardware, disk, and restart conditions.
+
+### Security
+
+- Added fail-fast conflict detection for incompatible Python environment strategies.
+- Added explicit confirmation before a real authorized Kali WSL lab installation.
+- Kept explicit pack names in an environment handoff rather than interpolating them into the PowerShell command line.
+
+### Fixed
+
+- Replaced bootstrap dependencies on `Invoke-WebRequest`, `Get-FileHash`, and `Expand-Archive` with .NET download, SHA-256, and ZIP APIs so GitHub Actions and other restricted `PSModulePath` environments can complete the verified handoff.
+
+### Testing
+
+- Added manifest metadata and reference integrity tests, every-profile default and essentials-only dry-runs, compatible pack composition, expected conflict coverage, pack listing, and an end-to-end repeated-pack bootstrap simulation.
+- Added end-to-end coverage with an intentionally restricted PowerShell module path to prevent recurrence of the CI bootstrap failure.
+- Verified all 86 exact package IDs against the live Winget source.
+
 ## [5.0.0] - 2026-08-07
 
 ### Added

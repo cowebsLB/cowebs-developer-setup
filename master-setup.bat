@@ -1,21 +1,24 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-title COWebs.lb Master Developer Environment Setup v5.0.0
+title COWebs.lb Master Developer Environment Setup v6.0.0
 color 0B
 for /f "tokens=2 delims=:" %%C in ('chcp') do set "ORIGINAL_CODE_PAGE=%%C"
 chcp 65001 >nul
 
-set "VERSION=5.0.0"
+set "VERSION=6.0.0"
 set "REPOSITORY=cowebsLB/cowebs-developer-setup"
-set "ASSET_NAME=cowebs-developer-setup-v5.0.0.zip"
+set "ASSET_NAME=cowebs-developer-setup-v6.0.0.zip"
 set "DOWNLOAD_URL=https://github.com/%REPOSITORY%/releases/download/v%VERSION%/%ASSET_NAME%"
-set "EXPECTED_SHA256=6489CE3E0901643AE20E6C704CEDAAF0FA8B43F73BCE174E91629495D6E71DFB"
+set "EXPECTED_SHA256=FE420680AB209531D19756E3194D625D64607650A98FFA40D4C7F72F3EBC4644"
 if defined COWEBS_SETUP_BUNDLE_PATH if defined COWEBS_SETUP_BUNDLE_SHA256 set "EXPECTED_SHA256=%COWEBS_SETUP_BUNDLE_SHA256%"
 set "PROFILE="
 set "DRY_RUN=0"
 set "NO_CONFIG=0"
 set "NO_RESTART=0"
 set "KEEP_TEMP=0"
+set "ESSENTIALS_ONLY=0"
+set "LIST_PACKS=0"
+set "COWEBS_SETUP_PACKS="
 
 call :ParseArguments %*
 set "PARSE_EXIT=!errorlevel!"
@@ -58,10 +61,11 @@ echo [INFO] Preparing verified COWebs.lb setup payload v!VERSION!...
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command ^
   "$ErrorActionPreference='Stop';" ^
   "$archive=$env:COWEBS_BOOTSTRAP_ARCHIVE;" ^
-  "if ($env:COWEBS_SETUP_BUNDLE_PATH) { Copy-Item -LiteralPath $env:COWEBS_SETUP_BUNDLE_PATH -Destination $archive -Force } else { Invoke-WebRequest -UseBasicParsing -Uri $env:COWEBS_BOOTSTRAP_URL -OutFile $archive };" ^
-  "$actual=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;" ^
+  "$extract=$env:COWEBS_BOOTSTRAP_EXTRACT;" ^
+  "if ($env:COWEBS_SETUP_BUNDLE_PATH) { [IO.File]::Copy($env:COWEBS_SETUP_BUNDLE_PATH,$archive,$true) } else { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $client=[Net.WebClient]::new(); try { $client.DownloadFile($env:COWEBS_BOOTSTRAP_URL,$archive) } finally { $client.Dispose() } };" ^
+  "$sha=[Security.Cryptography.SHA256]::Create(); $stream=[IO.File]::OpenRead($archive); try { $actual=[BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-','') } finally { $stream.Dispose(); $sha.Dispose() };" ^
   "if ($actual -ne $env:COWEBS_BOOTSTRAP_SHA256) { throw ('Release checksum mismatch. Expected ' + $env:COWEBS_BOOTSTRAP_SHA256 + ', received ' + $actual) };" ^
-  "Expand-Archive -LiteralPath $archive -DestinationPath $env:COWEBS_BOOTSTRAP_EXTRACT -Force"
+  "[void][Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.FileSystem'); [IO.Compression.ZipFile]::ExtractToDirectory($archive,$extract)"
 if errorlevel 1 (
     echo [ERROR] The setup payload could not be downloaded, verified, or extracted.
     set "FINAL_EXIT=5"
@@ -80,6 +84,8 @@ if defined PROFILE set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -Profile !PROFILE!"
 if "!DRY_RUN!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -DryRun"
 if "!NO_CONFIG!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -NoConfig"
 if "!NO_RESTART!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -NoRestart"
+if "!ESSENTIALS_ONLY!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -EssentialsOnly"
+if "!LIST_PACKS!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -ListPacks"
 
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "!ENGINE_PATH!" !ENGINE_ARGUMENTS!
 set "FINAL_EXIT=!errorlevel!"
@@ -123,6 +129,33 @@ if /I "%~1"=="--profile" (
     goto ParseNextArgument
 )
 if /I "%~1"=="--dry-run" (
+    set "DRY_RUN=1"
+    set "NO_CONFIG=1"
+    set "NO_RESTART=1"
+    shift
+    goto ParseNextArgument
+)
+if /I "%~1"=="--pack" (
+    if "%~2"=="" (
+        echo [ERROR] --pack requires a pack name.
+        exit /b 2
+    )
+    if defined COWEBS_SETUP_PACKS (
+        set "COWEBS_SETUP_PACKS=!COWEBS_SETUP_PACKS!,%~2"
+    ) else (
+        set "COWEBS_SETUP_PACKS=%~2"
+    )
+    shift
+    shift
+    goto ParseNextArgument
+)
+if /I "%~1"=="--essentials-only" (
+    set "ESSENTIALS_ONLY=1"
+    shift
+    goto ParseNextArgument
+)
+if /I "%~1"=="--list-packs" (
+    set "LIST_PACKS=1"
     set "DRY_RUN=1"
     set "NO_CONFIG=1"
     set "NO_RESTART=1"
@@ -178,6 +211,10 @@ echo Profiles:
 echo   backend, frontend, android, devops, ai, cyber, game, fullstack, everything
 echo.
 echo Options:
+echo   --pack NAME    Add a use-case pack. Repeat this option to add several packs.
+echo   --essentials-only
+echo                  Install core tools and role essentials without recommended packs.
+echo   --list-packs   List available use-case packs without installing anything.
 echo   --dry-run      Preview without installing, configuring, creating folders, or restarting.
 echo   --no-config    Skip optional post-install configuration.
 echo   --no-restart   Suppress the Windows restart prompt.

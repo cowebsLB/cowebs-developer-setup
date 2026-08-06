@@ -1,16 +1,21 @@
 # Features
 
-## Available in v5.0.0
+## Available in v6.0.0
 
 - Full UTF-8 COWEBS.LB block-letter branding
 - Single-file Windows user experience
 - Pinned and SHA-256-verified release payload
 - Nine shared developer profiles
-- Twenty-six logical packages with exact Winget mappings
-- Profile inheritance and duplicate elimination
+- Eighty-six logical packages with live-verified exact Winget mappings
+- Thirty-four reusable use-case packs
+- Core, essential, recommended, and optional selection layers
+- Recursive dependencies, conflict detection, profile inheritance, and duplicate elimination
+- Repeatable CLI pack selection, interactive optional-pack selection, essentials-only mode, and pack listing
+- Package tier, category, license, condition, and installer-strategy metadata
 - Interactive and CLI-driven execution
 - Installation, skip, failure, and dry-run summaries
-- Optional Git, GitHub CLI, VS Code, Node.js, Python, Docker, AWS, and Azure configuration
+- Optional Git, Git LFS, GitHub CLI, VS Code, Node.js, Python/uv, Docker, AWS, and Azure configuration
+- Authorized-lab confirmation for Kali WSL and package-specific Visual Studio game workload installation
 - Persistent secret-free logging
 - Scoped temporary cleanup
 - Automated release-building and bootstrap simulation

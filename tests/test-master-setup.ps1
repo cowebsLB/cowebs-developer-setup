@@ -5,6 +5,7 @@ $bootstrapPath = Join-Path $projectRoot 'master-setup.bat'
 $enginePath = Join-Path $projectRoot 'src\windows\setup.ps1'
 $packagesPath = Join-Path $projectRoot 'config\packages.json'
 $profilesPath = Join-Path $projectRoot 'config\profiles.json'
+$readmePath = Join-Path $projectRoot 'README.md'
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Assert-True {
@@ -15,29 +16,69 @@ function Assert-True {
 $bootstrap = [IO.File]::ReadAllText($bootstrapPath, [Text.UTF8Encoding]::new($false))
 $packages = Get-Content -LiteralPath $packagesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $profiles = Get-Content -LiteralPath $profilesPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$readme = Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8
 
-Assert-True ($bootstrap -match 'set "VERSION=5\.0\.0"') 'Bootstrap version 5.0.0 is missing.'
+Assert-True ($bootstrap -match 'set "VERSION=6\.0\.0"') 'Bootstrap version 6.0.0 is missing.'
 Assert-True ($bootstrap -match 'cowebsLB/cowebs-developer-setup') 'Pinned GitHub repository is missing.'
 Assert-True ($bootstrap -match 'releases/download/v%VERSION%') 'Pinned release URL is missing.'
-Assert-True ($bootstrap -match 'Get-FileHash.*SHA256') 'SHA-256 verification is missing.'
+Assert-True ($bootstrap -match 'Security\.Cryptography\.SHA256') '.NET SHA-256 verification is missing.'
+Assert-True ($bootstrap -match 'IO\.Compression\.ZipFile') '.NET ZIP extraction is missing.'
+Assert-True ($bootstrap -match 'Net\.WebClient') '.NET release download is missing.'
+Assert-True ($bootstrap -notmatch 'Get-FileHash|Expand-Archive|Invoke-WebRequest') 'Bootstrap must not depend on PowerShell utility or archive cmdlets.'
 Assert-True ($bootstrap -notmatch '__BUNDLE_SHA256__') 'Release checksum placeholder was not replaced.'
 Assert-True ($bootstrap -match 'Banner artwork spells COWEBS\.LB\.') 'Complete COWEBS.LB banner marker is missing.'
 Assert-True ($bootstrap -match 'TEMP%\\COWebs\.lb') 'Dedicated temporary root is missing.'
 Assert-True ($bootstrap -match 'rmdir /s /q "!SESSION_DIR!"') 'Scoped temporary cleanup is missing.'
 Assert-True ($bootstrap -match 'chcp !ORIGINAL_CODE_PAGE!') 'Original console code-page restoration is missing.'
+Assert-True ($bootstrap -match '--pack') 'Use-case pack bootstrap option is missing.'
+Assert-True ($bootstrap -match '--essentials-only') 'Essentials-only bootstrap option is missing.'
+Assert-True ($bootstrap -match '--list-packs') 'Pack listing bootstrap option is missing.'
+Assert-True ($bootstrap -match 'COWEBS_SETUP_PACKS') 'Environment-based pack handoff is missing.'
 Assert-True (-not [regex]::IsMatch($bootstrap, '(?<!\r)\n')) 'master-setup.bat must use Windows CRLF line endings.'
+Assert-True ($readme -match 'actions/workflows/validate\.yml/badge\.svg') 'README validation badge is missing.'
+Assert-True ($readme -match 'img\.shields\.io/github/v/release') 'README release badge is missing.'
+Assert-True ($readme -match 'license-MIT') 'README license badge is missing.'
+Assert-True ($readme -match 'platform-Windows') 'README platform badge is missing.'
+Assert-True ($readme -match 'manifest-v2') 'README schema badge is missing.'
 
 $packageKeys = @($packages.packages | ForEach-Object { $_.key })
 $wingetIds = @($packages.packages | ForEach-Object { $_.platforms.windows.wingetId })
-Assert-True ($packages.schemaVersion -eq 1) 'Package schema version must be 1.'
-Assert-True ($packageKeys.Count -eq 26) "Expected 26 packages, found $($packageKeys.Count)."
+Assert-True ($packages.schemaVersion -eq 2) 'Package schema version must be 2.'
+Assert-True ($packageKeys.Count -ge 80) "Expected at least 80 professional packages, found $($packageKeys.Count)."
 Assert-True (($packageKeys | Sort-Object -Unique).Count -eq $packageKeys.Count) 'Package keys must be unique.'
 Assert-True (($wingetIds | Sort-Object -Unique).Count -eq $wingetIds.Count) 'Winget IDs must be unique.'
 Assert-True (-not ($wingetIds -contains $null)) 'Every package must have a Windows Winget ID.'
+foreach ($package in $packages.packages) {
+    Assert-True (-not [string]::IsNullOrWhiteSpace($package.name)) "Package '$($package.key)' has no display name."
+    Assert-True (@('core', 'recommended', 'optional') -contains $package.tier) "Package '$($package.key)' has invalid tier '$($package.tier)'."
+    Assert-True (@($package.categories).Count -gt 0) "Package '$($package.key)' has no category."
+    Assert-True (@('winget') -contains $package.installStrategy) "Package '$($package.key)' has unsupported install strategy '$($package.installStrategy)'."
+    Assert-True (@('open-source', 'vendor-terms', 'source-available') -contains $package.license) "Package '$($package.key)' has invalid license metadata."
+    foreach ($requiredKey in @($package.requires) | Where-Object { $_ }) {
+        Assert-True ($packageKeys -contains $requiredKey) "Package '$($package.key)' requires unknown package '$requiredKey'."
+    }
+    foreach ($conflictKey in @($package.conflictsWith) | Where-Object { $_ }) {
+        Assert-True ($packageKeys -contains $conflictKey) "Package '$($package.key)' conflicts with unknown package '$conflictKey'."
+        $other = $packages.packages | Where-Object key -eq $conflictKey | Select-Object -First 1
+        Assert-True (@($other.conflictsWith) -contains $package.key) "Conflict '$($package.key)' / '$conflictKey' must be symmetric."
+    }
+}
 
 $profileProperties = @($profiles.profiles.PSObject.Properties)
-Assert-True ($profiles.schemaVersion -eq 1) 'Profile schema version must be 1.'
+Assert-True ($profiles.schemaVersion -eq 2) 'Profile schema version must be 2.'
 Assert-True ($profileProperties.Count -eq 9) "Expected 9 profiles, found $($profileProperties.Count)."
+foreach ($packageKey in @($profiles.corePackages)) {
+    Assert-True ($packageKeys -contains $packageKey) "Core catalog references unknown package '$packageKey'."
+}
+$packProperties = @($profiles.packs.PSObject.Properties)
+Assert-True ($packProperties.Count -ge 30) "Expected at least 30 use-case packs, found $($packProperties.Count)."
+foreach ($packProperty in $packProperties) {
+    Assert-True (-not [string]::IsNullOrWhiteSpace($packProperty.Value.name)) "Pack '$($packProperty.Name)' has no display name."
+    Assert-True (@($packProperty.Value.packages).Count -gt 0) "Pack '$($packProperty.Name)' is empty."
+    foreach ($packageKey in @($packProperty.Value.packages)) {
+        Assert-True ($packageKeys -contains $packageKey) "Pack '$($packProperty.Name)' references unknown package '$packageKey'."
+    }
+}
 foreach ($profileProperty in $profileProperties) {
     $definition = $profileProperty.Value
     foreach ($packageKey in @($definition.packages)) {
@@ -49,10 +90,16 @@ foreach ($profileProperty in $profileProperties) {
             Assert-True ($profiles.profiles.PSObject.Properties.Name -contains $parent) "Profile '$($profileProperty.Name)' extends unknown profile '$parent'."
         }
     }
+    foreach ($packKey in @($definition.recommendedPacks) + @($definition.optionalPacks)) {
+        Assert-True ($profiles.packs.PSObject.Properties.Name -contains $packKey) "Profile '$($profileProperty.Name)' references unknown pack '$packKey'."
+    }
 }
 
 $profileExpectations = [ordered]@{
-    backend = 9; frontend = 9; android = 8; devops = 11; ai = 8; cyber = 6; game = 5; fullstack = 13; everything = 26
+    backend = 17; frontend = 17; android = 14; devops = 29; ai = 16; cyber = 16; game = 17; fullstack = 20; everything = 55
+}
+$essentialsExpectations = [ordered]@{
+    backend = 15; frontend = 16; android = 14; devops = 14; ai = 12; cyber = 14; game = 11; fullstack = 19; everything = 27
 }
 foreach ($profile in $profileExpectations.Keys) {
     $output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -Profile $profile -DryRun -NoConfig -NoRestart 2>&1
@@ -60,7 +107,35 @@ foreach ($profile in $profileExpectations.Keys) {
     $joined = $output -join "`n"
     Assert-True ($exitCode -eq 0) "$profile engine dry-run exited with code $exitCode."
     Assert-True ($joined -match "Planned:\s+$($profileExpectations[$profile])") "$profile did not resolve to $($profileExpectations[$profile]) unique packages."
+
+    $output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -Profile $profile -EssentialsOnly -DryRun -NoConfig -NoRestart 2>&1
+    $exitCode = $LASTEXITCODE
+    $joined = $output -join "`n"
+    Assert-True ($exitCode -eq 0) "$profile essentials-only dry-run exited with code $exitCode."
+    Assert-True ($joined -match "Planned:\s+$($essentialsExpectations[$profile])") "$profile essentials-only mode did not resolve to $($essentialsExpectations[$profile]) packages."
 }
+
+$output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -Profile backend -PackNames 'backend-python,cloud-aws' -DryRun -NoConfig -NoRestart 2>&1
+$joined = $output -join "`n"
+Assert-True ($LASTEXITCODE -eq 0) 'Explicit compatible pack selection failed.'
+Assert-True ($joined -match 'Packs: backend-node, backend-python, cloud-aws') 'Explicit packs were not merged with the recommended profile pack.'
+Assert-True ($joined -match 'Planned:\s+20') 'Explicit pack dependency plan did not resolve to 20 packages.'
+
+$previousErrorAction = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -Profile ai -PackNames 'ai-conda' -DryRun -NoConfig -NoRestart 2>&1
+$ErrorActionPreference = $previousErrorAction
+$joined = $output -join "`n"
+Assert-True ($LASTEXITCODE -ne 0) 'Conflicting Python environment packs should fail.'
+Assert-True ($joined -match 'Package conflict') 'Conflicting pack failure did not explain the package conflict.'
+
+$output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -Profile ai -EssentialsOnly -PackNames 'ai-conda' -DryRun -NoConfig -NoRestart 2>&1
+Assert-True ($LASTEXITCODE -eq 0) 'Conda pack should work when the recommended uv pack is disabled.'
+
+$output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -ListPacks -DryRun -NoConfig -NoRestart 2>&1
+$joined = $output -join "`n"
+Assert-True ($LASTEXITCODE -eq 0) 'Pack listing failed.'
+Assert-True ($joined -match 'backend-python' -and $joined -match 'game-unreal') 'Pack listing is incomplete.'
 
 $requiredDocumentation = @(
     'README.md', 'CHANGELOG.md', 'docs/index.md', 'docs/architecture.md', 'docs/installation.md',
