@@ -10,14 +10,16 @@ The command produces `dist/cowebs-developer-setup-v6.1.0.zip` and prints its SHA
 
 ## Published release
 
-Version 6.0.0 is published at `https://github.com/cowebsLB/cowebs-developer-setup/releases/tag/v6.0.0` from source commit `08ce139919d60c6b5909c7c4866da6043fe003b6`.
+Version 6.1.0 is published at `https://github.com/cowebsLB/cowebs-developer-setup/releases/tag/v6.1.0` from source commit `5f78f55351baf963abdf969229363344c6d305a6`.
 
 Published assets:
 
 - `master-setup.bat`
-- `cowebs-developer-setup-v6.0.0.zip`
+- `cowebs-developer-setup-v6.1.0.zip`
 
-The public ZIP SHA-256 is `FE420680AB209531D19756E3194D625D64607650A98FFA40D4C7F72F3EBC4644`.
+The public ZIP SHA-256 is `0CE008E61DAE7EA26989E6C6528A251D4BE825DEDFFFB286933BB2F9BB00AE46`. The public BAT SHA-256 is `2B1233D1A83CEFAF0E160474F29A2953B039C147F4676F82AB06140A95A933BB`.
+
+The public latest-release BAT downloaded and completed an Everything dry-run with 55 planned packages and zero failures. GitHub Actions validation run `31130931504` passed against the source commit. The push-triggered run did not appear, so the same checked-in workflow was dispatched manually and completed successfully.
 
 ## Release procedure
 
