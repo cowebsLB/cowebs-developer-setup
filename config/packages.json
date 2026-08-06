@@ -1,5 +1,23 @@
 {
   "schemaVersion": 2,
+  "windowsEstimatePolicy": {
+    "description": "Fresh-install planning ranges. Actual totals vary by package version, cache state, network, hardware, and installer-selected components.",
+    "default": { "downloadMbMin": 15, "downloadMbMax": 120, "installMinutesMin": 0.2, "installMinutesMax": 0.8 },
+    "diskHeavy": { "downloadMbMin": 300, "downloadMbMax": 1500, "installMinutesMin": 3, "installMinutesMax": 12 },
+    "overrides": {
+      "docker": { "downloadMbMin": 500, "downloadMbMax": 800, "installMinutesMin": 5, "installMinutesMax": 15 },
+      "postgresql": { "downloadMbMin": 300, "downloadMbMax": 500, "installMinutesMin": 4, "installMinutesMax": 10 },
+      "android-studio": { "downloadMbMin": 900, "downloadMbMax": 1500, "installMinutesMin": 8, "installMinutesMax": 20 },
+      "wsl": { "downloadMbMin": 100, "downloadMbMax": 300, "installMinutesMin": 3, "installMinutesMax": 10 },
+      "ubuntu-wsl": { "downloadMbMin": 600, "downloadMbMax": 1000, "installMinutesMin": 5, "installMinutesMax": 15 },
+      "ollama": { "downloadMbMin": 700, "downloadMbMax": 1100, "installMinutesMin": 3, "installMinutesMax": 8 },
+      "kali-wsl": { "downloadMbMin": 900, "downloadMbMax": 1600, "installMinutesMin": 8, "installMinutesMax": 20 },
+      "unity-hub": { "downloadMbMin": 150, "downloadMbMax": 300, "installMinutesMin": 2, "installMinutesMax": 6 },
+      "epic-games-launcher": { "downloadMbMin": 200, "downloadMbMax": 400, "installMinutesMin": 3, "installMinutesMax": 8 },
+      "visual-studio-game": { "downloadMbMin": 1500, "downloadMbMax": 6500, "installMinutesMin": 15, "installMinutesMax": 50 },
+      "blender": { "downloadMbMin": 250, "downloadMbMax": 450, "installMinutesMin": 2, "installMinutesMax": 6 }
+    }
+  },
   "packages": [
     { "key": "git", "name": "Git", "tier": "core", "categories": ["source-control"], "configure": "git", "installStrategy": "winget", "license": "open-source", "platforms": { "windows": { "wingetId": "Git.Git" } } },
     { "key": "github-cli", "name": "GitHub CLI", "tier": "core", "categories": ["source-control"], "configure": "github", "installStrategy": "winget", "license": "open-source", "platforms": { "windows": { "wingetId": "GitHub.cli" } } },

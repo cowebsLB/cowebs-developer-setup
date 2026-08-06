@@ -13,7 +13,7 @@ master-setup.bat
 
 ## Bootstrap layer
 
-`master-setup.bat` is the only required Windows download. It parses the public CLI, renders the COWEBS.LB banner, creates a randomized temporary session, downloads the v6.0.0 asset, verifies its hard-coded SHA-256, extracts it, invokes the Windows adapter, and removes only that session directory. Download, hashing, and ZIP extraction use .NET framework APIs rather than auto-loaded PowerShell modules, which keeps the handoff stable under restricted `PSModulePath` environments. Explicit pack names cross this boundary through `COWEBS_SETUP_PACKS`, avoiding command-line interpolation.
+`master-setup.bat` is the only required Windows download. It parses the public CLI and renders the COWEBS.LB banner. Before a real installation, it inspects the current Windows token and either continues as Administrator or performs one `RunAs` relaunch of the same canonical request; informational and dry-run paths skip this boundary. Selected packs cross the handoff as environment data rather than executable command text. The elevated bootstrap then creates a randomized temporary session, downloads the asset for its pinned version, verifies its hard-coded SHA-256, extracts it, invokes the Windows adapter, and removes only that session directory. Download, hashing, and ZIP extraction use .NET framework APIs rather than auto-loaded PowerShell modules, which keeps the handoff stable under restricted `PSModulePath` environments.
 
 ## Shared manifest layer
 
@@ -23,7 +23,9 @@ master-setup.bat
 
 ## Platform adapter layer
 
-The Windows PowerShell adapter owns Winget behavior, pack selection, plan validation, PATH refresh, Windows-specific configuration, folders, restart handling, authorized-lab confirmation, and persistent logs. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
+The Windows PowerShell adapter owns Winget behavior, pack selection, plan validation, an elevated-real-install guard, privilege reporting, preflight estimates, colored status rendering, PATH refresh, Windows-specific configuration tracking, folders, restart handling, authorized-lab confirmation, persistent logs, and the final execution summary. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
+
+Windows estimates are catalog-driven. The manifest supplies conservative fallback and disk-heavy ranges plus overrides for unusually large packages. The adapter sums the resolved dependency-free plan before Winget runs; estimates describe a fresh setup and are not a promise of exact transfer size or duration.
 
 ## Release layer
 

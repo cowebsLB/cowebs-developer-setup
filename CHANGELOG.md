@@ -2,6 +2,32 @@
 
 All notable changes follow semantic versioning.
 
+## [6.1.0] - 2026-08-07
+
+### Added
+
+- Added plan-level estimated download-size and install-time ranges before package processing begins.
+- Added catalog-owned Windows estimation policy with conservative defaults and heavyweight-package overrides.
+- Added a structured final summary listing installed, skipped, failed, and configured items plus the persistent log path.
+- Added one-time bootstrap self-elevation and visible privilege reporting for real Windows installations.
+
+### Changed
+
+- Standardized colored status labels: green success, yellow skipped, red failed, cyan installing, and magenta planned.
+- Configuration actions now record only components whose requested configuration completed successfully.
+- Failed configuration actions now contribute to the final failure count and non-zero setup exit status.
+- Changed the README download link to the stable GitHub `latest` asset URL so it remains valid between source and release publication.
+- Help, version, pack-listing, and dry-run paths remain unelevated, while the Windows engine rejects direct unelevated real-install execution.
+
+### Security
+
+- Preserved selected pack names across the elevated handoff through a validated environment-data channel rather than command-line interpolation.
+- Kept Windows UAC enabled and avoided credential storage, `SYSTEM` execution, or global consent-policy changes.
+
+### Testing
+
+- Added validation for estimate ranges and override references, status color contracts, estimate output, configuration summary output, privilege rendering, one-time elevation contracts, dry-run elevation bypass, and end-to-end bootstrap rendering.
+
 ## [6.0.0] - 2026-08-07
 
 ### Added

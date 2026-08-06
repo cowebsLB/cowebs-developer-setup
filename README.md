@@ -12,7 +12,7 @@ Windows is the first implemented platform. Users download one file: `master-setu
 
 - [GitHub repository](https://github.com/cowebsLB/cowebs-developer-setup)
 - [Latest release](https://github.com/cowebsLB/cowebs-developer-setup/releases/latest)
-- [Download master-setup.bat v6.0.0](https://github.com/cowebsLB/cowebs-developer-setup/releases/download/v6.0.0/master-setup.bat)
+- [Download the latest stable master-setup.bat](https://github.com/cowebsLB/cowebs-developer-setup/releases/latest/download/master-setup.bat)
 
 ## Windows quick start
 
@@ -35,7 +35,9 @@ master-setup.bat --list-packs
 master-setup.bat --profile ai --essentials-only --pack ai-conda --dry-run
 ```
 
-Run `master-setup.bat` without arguments for the interactive branded setup. The BAT downloads the pinned v6.0.0 release payload into a randomized directory under `%TEMP%\COWebs.lb`, verifies its hard-coded SHA-256 checksum, runs the Windows engine, saves logs outside the payload, and removes the temporary directory.
+Run `master-setup.bat` without arguments for the interactive branded setup. A real installation requests Administrator approval once at the beginning, then the elevated session downloads its pinned release payload into a randomized directory under `%TEMP%\COWebs.lb`, verifies its hard-coded SHA-256 checksum, runs the Windows engine, saves logs outside the payload, and removes the temporary directory. Help, version, pack listing, and dry-run commands do not request elevation.
+
+Before installation starts, v6.1 prints a fresh-setup download range and install-time range for the resolved plan. During execution, color-coded status labels make installing, successful, skipped, and failed packages easy to scan. The final summary reports installed, skipped, failed, and configured items plus the persistent log path.
 
 ## Profiles and packs
 
@@ -64,6 +66,7 @@ See the [package and profile guide](docs/package-selection.md) for the complete 
 - Bootstrap download, hashing, and extraction do not depend on PowerShell module auto-loading.
 - Exact Winget package IDs, all live-checked for v6.0.0.
 - Pre-install dependency and conflict resolution.
+- One initial UAC request for a complete real installation, with visible privilege reporting and no UAC-policy bypass.
 - Explicit authorized-lab confirmation for Kali WSL.
 - Temporary files scoped beneath a dedicated randomized directory.
 - Authentication credentials and command output are not written to setup logs.

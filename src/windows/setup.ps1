@@ -22,6 +22,45 @@ $script:SkippedCount = 0
 $script:FailedCount = 0
 $script:PlannedCount = 0
 $script:LogPath = $null
+$script:ConfiguredItems = New-Object System.Collections.Generic.List[string]
+$script:StatusColors = @{
+    SUCCESS = 'Green'
+    SKIPPED = 'Yellow'
+    FAILED = 'Red'
+    INSTALLING = 'Cyan'
+    PLANNED = 'Magenta'
+    INFO = 'Cyan'
+    NOTE = 'DarkYellow'
+    WARNING = 'Yellow'
+}
+
+function Write-Status {
+    param(
+        [ValidateSet('SUCCESS', 'SKIPPED', 'FAILED', 'INSTALLING', 'PLANNED', 'INFO', 'NOTE', 'WARNING')]
+        [string]$Label,
+        [string]$Message
+    )
+    Write-Host "[$Label]" -ForegroundColor $script:StatusColors[$Label] -NoNewline
+    Write-Host " $Message"
+}
+
+function Test-IsAdministrator {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Add-ConfiguredItem {
+    param([string]$Name)
+    if ($Name -and -not $script:ConfiguredItems.Contains($Name)) { $script:ConfiguredItems.Add($Name) }
+}
+
+function Add-ConfigurationFailure {
+    param([string]$Message)
+    $script:FailedCount++
+    Write-Status -Label 'FAILED' -Message $Message
+    Write-SetupLog "FAILED configuration: $Message"
+}
 
 function Write-SetupLog {
     param([string]$Message)
@@ -58,6 +97,45 @@ function Get-PackDefinition {
     $property = $profileCatalog.packs.PSObject.Properties[$Key]
     if (-not $property) { throw "Unknown pack: $Key" }
     return $property.Value
+}
+
+function Format-EstimatedSize {
+    param([double]$Megabytes)
+    if ($Megabytes -ge 1024) { return ('{0:N1} GB' -f ($Megabytes / 1024)) }
+    return ('{0:N0} MB' -f $Megabytes)
+}
+
+function Get-PlanEstimate {
+    param([string[]]$PackageKeys)
+
+    $policy = $packageCatalog.windowsEstimatePolicy
+    if (-not $policy) { throw 'Windows estimate policy is missing from the package manifest.' }
+    $downloadMin = 0.0
+    $downloadMax = 0.0
+    $minutesMin = 0.0
+    $minutesMax = 0.0
+
+    foreach ($packageKey in $PackageKeys) {
+        $package = Get-PackageDefinition $packageKey
+        $estimate = $null
+        $override = $policy.overrides.PSObject.Properties[$packageKey]
+        if ($override) {
+            $estimate = $override.Value
+        } else {
+            $conditions = Get-OptionalPropertyValue $package 'conditions'
+            if ($conditions -and (Get-OptionalPropertyValue $conditions 'diskHeavy')) { $estimate = $policy.diskHeavy }
+            else { $estimate = $policy.default }
+        }
+        $downloadMin += [double]$estimate.downloadMbMin
+        $downloadMax += [double]$estimate.downloadMbMax
+        $minutesMin += [double]$estimate.installMinutesMin
+        $minutesMax += [double]$estimate.installMinutesMax
+    }
+
+    return [pscustomobject]@{
+        Download = "$(Format-EstimatedSize $downloadMin) - $(Format-EstimatedSize $downloadMax)"
+        InstallTime = "$([Math]::Max(1, [Math]::Ceiling($minutesMin)))-$([Math]::Max(1, [Math]::Ceiling($minutesMax))) minutes"
+    }
 }
 
 function Select-SetupProfile {
@@ -207,38 +285,38 @@ function Install-WindowsPackage {
 
     $conditions = Get-OptionalPropertyValue $Package 'conditions'
     if ($conditions) {
-        if (Get-OptionalPropertyValue $conditions 'diskHeavy') { Write-Host '[NOTE] This is a disk-heavy package.' -ForegroundColor DarkYellow }
+        if (Get-OptionalPropertyValue $conditions 'diskHeavy') { Write-Status -Label 'NOTE' -Message 'This is a disk-heavy package.' }
         $hardware = Get-OptionalPropertyValue $conditions 'hardwareRecommended'
-        if ($hardware) { Write-Host "[NOTE] Recommended hardware: $hardware" -ForegroundColor DarkYellow }
-        if (Get-OptionalPropertyValue $conditions 'authorizedLabOnly') { Write-Host '[WARNING] Use only in an authorized security lab.' -ForegroundColor Yellow }
+        if ($hardware) { Write-Status -Label 'NOTE' -Message "Recommended hardware: $hardware" }
+        if (Get-OptionalPropertyValue $conditions 'authorizedLabOnly') { Write-Status -Label 'WARNING' -Message 'Use only in an authorized security lab.' }
     }
 
     if ($DryRun) {
-        Write-Host "[PLANNED] winget install --id `"$id`" --exact --source winget"
+        Write-Status -Label 'PLANNED' -Message "winget install --id `"$id`" --exact --source winget"
         $script:PlannedCount++
         return
     }
 
     & winget list --id $id --exact --accept-source-agreements --disable-interactivity *> $null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[SKIPPED] $($Package.name) is already installed." -ForegroundColor DarkGray
+        Write-Status -Label 'SKIPPED' -Message "$($Package.name) is already installed."
         $script:SkippedCount++
         Write-SetupLog "SKIPPED $($Package.name) [$id]."
         return
     }
 
-    Write-Host "[INSTALLING] $($Package.name)" -ForegroundColor Yellow
+    Write-Status -Label 'INSTALLING' -Message $Package.name
     Write-SetupLog "INSTALLING $($Package.name) [$id]."
     $arguments = @('install', '--id', $id, '--exact', '--source', 'winget', '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
     $override = Get-OptionalPropertyValue $windows 'wingetOverride'
     if ($override) { $arguments += @('--override', [string]$override) }
     & winget @arguments
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[SUCCESS] $($Package.name)" -ForegroundColor Green
+        Write-Status -Label 'SUCCESS' -Message $Package.name
         $script:InstalledCount++
         Write-SetupLog "SUCCESS $($Package.name) [$id]."
     } else {
-        Write-Host "[FAILED] $($Package.name) - Winget exit code $LASTEXITCODE." -ForegroundColor Red
+        Write-Status -Label 'FAILED' -Message "$($Package.name) - Winget exit code $LASTEXITCODE."
         $script:FailedCount++
         Write-SetupLog "FAILED $($Package.name) [$id] exit=$LASTEXITCODE."
     }
@@ -260,45 +338,85 @@ function Invoke-Configuration {
             if (-not (Read-YesNo 'Configure Git defaults and identity?')) { return }
             $name = Read-Host 'Git name'; $email = Read-Host 'Git email'
             if (-not $name -or -not $email) { Write-Warning 'Git name and email are required; skipping.'; return }
-            & git config --global user.name $name; & git config --global user.email $email
-            & git config --global init.defaultBranch main; & git config --global pull.rebase false; & git config --global core.autocrlf true
-            Write-SetupLog 'Configured Git identity and defaults.'
+            $gitSucceeded = $true
+            & git config --global user.name $name; if ($LASTEXITCODE -ne 0) { $gitSucceeded = $false }
+            & git config --global user.email $email; if ($LASTEXITCODE -ne 0) { $gitSucceeded = $false }
+            & git config --global init.defaultBranch main; if ($LASTEXITCODE -ne 0) { $gitSucceeded = $false }
+            & git config --global pull.rebase false; if ($LASTEXITCODE -ne 0) { $gitSucceeded = $false }
+            & git config --global core.autocrlf true; if ($LASTEXITCODE -ne 0) { $gitSucceeded = $false }
+            if ($gitSucceeded) { Write-SetupLog 'Configured Git identity and defaults.'; Add-ConfiguredItem 'Git' }
+            else { Add-ConfigurationFailure 'Git configuration did not complete.' }
         }
         'git-lfs' {
-            if (Get-Command git -ErrorAction SilentlyContinue) { & git lfs install; Write-SetupLog 'Configured Git LFS.' }
+            if (Get-Command git -ErrorAction SilentlyContinue) {
+                & git lfs install
+                if ($LASTEXITCODE -eq 0) { Write-SetupLog 'Configured Git LFS.'; Add-ConfiguredItem 'Git LFS' }
+                else { Add-ConfigurationFailure 'Git LFS configuration did not complete.' }
+            }
         }
         'github' {
             if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { Write-Warning 'GitHub CLI is unavailable; skipping login.'; return }
-            if (Read-YesNo 'Log in to GitHub CLI?') { & gh auth login; Write-SetupLog 'GitHub CLI login command completed.' }
+            if (Read-YesNo 'Log in to GitHub CLI?') {
+                & gh auth login
+                if ($LASTEXITCODE -eq 0) { Write-SetupLog 'GitHub CLI login command completed.'; Add-ConfiguredItem 'GitHub CLI' }
+                else { Add-ConfigurationFailure 'GitHub CLI login did not complete.' }
+            }
         }
         'vscode' {
             if (-not (Get-Command code -ErrorAction SilentlyContinue)) { Write-Warning 'VS Code CLI is unavailable; skipping extensions.'; return }
             if (-not (Read-YesNo 'Install the COWebs.lb recommended VS Code extensions?')) { return }
-            @('GitHub.copilot', 'GitHub.copilot-chat', 'eamodio.gitlens', 'ms-python.python', 'dbaeumer.vscode-eslint', 'esbenp.prettier-vscode') | ForEach-Object { & code --install-extension $_ }
-            Write-SetupLog 'Requested recommended VS Code extensions.'
+            $extensionsSucceeded = $true
+            @('GitHub.copilot', 'GitHub.copilot-chat', 'eamodio.gitlens', 'ms-python.python', 'dbaeumer.vscode-eslint', 'esbenp.prettier-vscode') | ForEach-Object {
+                & code --install-extension $_
+                if ($LASTEXITCODE -ne 0) { $extensionsSucceeded = $false }
+            }
+            if ($extensionsSucceeded) { Write-SetupLog 'Installed recommended VS Code extensions.'; Add-ConfiguredItem 'VS Code' }
+            else { Add-ConfigurationFailure 'One or more VS Code extensions could not be configured.' }
         }
         'node' {
             if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { Write-Warning 'npm is unavailable; skipping Node configuration.'; return }
-            if (Read-YesNo 'Update npm and enable Corepack?') { & npm install --global npm; & corepack enable; Write-SetupLog 'Node.js configuration commands completed.' }
+            if (Read-YesNo 'Update npm and enable Corepack?') {
+                & npm install --global npm; $npmExit = $LASTEXITCODE
+                & corepack enable; $corepackExit = $LASTEXITCODE
+                if ($npmExit -eq 0 -and $corepackExit -eq 0) { Write-SetupLog 'Node.js configuration commands completed.'; Add-ConfiguredItem 'Node.js' }
+                else { Add-ConfigurationFailure 'Node.js configuration did not complete.' }
+            }
         }
         'python' {
             if (-not (Get-Command python -ErrorAction SilentlyContinue)) { Write-Warning 'Python is unavailable; skipping packages.'; return }
-            if (Read-YesNo 'Upgrade pip and install common Python quality tools?') { & python -m pip install --upgrade pip; & python -m pip install black flake8 pytest requests; Write-SetupLog 'Python package commands completed.' }
+            if (Read-YesNo 'Upgrade pip and install common Python quality tools?') {
+                & python -m pip install --upgrade pip; $pipExit = $LASTEXITCODE
+                & python -m pip install black flake8 pytest requests; $toolsExit = $LASTEXITCODE
+                if ($pipExit -eq 0 -and $toolsExit -eq 0) { Write-SetupLog 'Python package commands completed.'; Add-ConfiguredItem 'Python' }
+                else { Add-ConfigurationFailure 'Python configuration did not complete.' }
+            }
         }
         'uv' {
             if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { Write-Warning 'uv is unavailable; skipping Python installation.'; return }
-            if (Read-YesNo 'Install managed Python 3.14 with uv?') { & uv python install 3.14; Write-SetupLog 'uv Python installation command completed.' }
+            if (Read-YesNo 'Install managed Python 3.14 with uv?') {
+                & uv python install 3.14
+                if ($LASTEXITCODE -eq 0) { Write-SetupLog 'uv Python installation command completed.'; Add-ConfiguredItem 'uv Python' }
+                else { Add-ConfigurationFailure 'uv Python configuration did not complete.' }
+            }
         }
         'docker' {
             if (-not (Read-YesNo 'Launch Docker Desktop?')) { return }
             $dockerPath = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-            if (Test-Path -LiteralPath $dockerPath) { Start-Process -FilePath $dockerPath; Write-SetupLog 'Docker Desktop launch requested.' } else { Write-Warning 'Docker Desktop executable was not found at the default location.' }
+            if (Test-Path -LiteralPath $dockerPath) { Start-Process -FilePath $dockerPath; Write-SetupLog 'Docker Desktop launch requested.'; Add-ConfiguredItem 'Docker Desktop' } else { Add-ConfigurationFailure 'Docker Desktop executable was not found at the default location.' }
         }
         'aws' {
-            if ((Get-Command aws -ErrorAction SilentlyContinue) -and (Read-YesNo 'Run aws configure?')) { & aws configure; Write-SetupLog 'AWS configuration completed; credentials were not logged.' }
+            if ((Get-Command aws -ErrorAction SilentlyContinue) -and (Read-YesNo 'Run aws configure?')) {
+                & aws configure
+                if ($LASTEXITCODE -eq 0) { Write-SetupLog 'AWS configuration completed; credentials were not logged.'; Add-ConfiguredItem 'AWS CLI' }
+                else { Add-ConfigurationFailure 'AWS CLI configuration did not complete.' }
+            }
         }
         'azure' {
-            if ((Get-Command az -ErrorAction SilentlyContinue) -and (Read-YesNo 'Log in to Azure CLI?')) { & az login; Write-SetupLog 'Azure login completed; credentials were not logged.' }
+            if ((Get-Command az -ErrorAction SilentlyContinue) -and (Read-YesNo 'Log in to Azure CLI?')) {
+                & az login
+                if ($LASTEXITCODE -eq 0) { Write-SetupLog 'Azure login completed; credentials were not logged.'; Add-ConfiguredItem 'Azure CLI' }
+                else { Add-ConfigurationFailure 'Azure CLI login did not complete.' }
+            }
         }
     }
 }
@@ -339,8 +457,13 @@ if (-not $profileWasProvided -and -not $EssentialsOnly) {
 
 $plan = Resolve-SetupPlan -ProfileKey $Profile -ExplicitPacks $explicitPacks.ToArray()
 $profileDefinition = $profileCatalog.profiles.PSObject.Properties[$Profile].Value
+$isAdministrator = Test-IsAdministrator
 
 if (-not $DryRun) {
+    if (-not $isAdministrator) {
+        Write-Status -Label 'FAILED' -Message 'A real installation requires Administrator privilege. Start it through master-setup.bat to receive one elevation prompt.'
+        exit 7
+    }
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Write-Error 'Winget is required. Install Microsoft App Installer and try again.'; exit 3 }
     $authorizedLabPackages = @($plan.PackageKeys | ForEach-Object { Get-PackageDefinition $_ } | Where-Object { $conditions = Get-OptionalPropertyValue $_ 'conditions'; $conditions -and (Get-OptionalPropertyValue $conditions 'authorizedLabOnly') })
     if ($authorizedLabPackages.Count -gt 0 -and -not (Read-YesNo 'Confirm these tools will be used only in an authorized security lab?')) { Write-Error 'Authorized lab confirmation was declined.'; exit 4 }
@@ -350,9 +473,16 @@ if (-not $DryRun) {
 }
 
 Write-Host "`nCOWebs.lb Windows Setup - $($profileDefinition.name)" -ForegroundColor Cyan
+Write-Host "Privilege: $(if ($isAdministrator) { 'Administrator' } else { 'Standard user (preview only)' })"
 Write-Host "$($plan.PackageKeys.Count) unique packages selected."
 if ($plan.SelectedPacks.Count -gt 0) { Write-Host "Packs: $($plan.SelectedPacks -join ', ')" }
 if ($EssentialsOnly) { Write-Host 'Mode: essentials only' }
+$estimate = Get-PlanEstimate -PackageKeys $plan.PackageKeys
+Write-Host "`nEstimated Download (fresh setup):" -ForegroundColor Cyan
+Write-Host "  $($estimate.Download)"
+Write-Host 'Estimated Install Time:' -ForegroundColor Cyan
+Write-Host "  $($estimate.InstallTime)"
+Write-Host 'Already-installed packages and cached installers reduce these estimates.' -ForegroundColor DarkGray
 foreach ($packageKey in $plan.PackageKeys) { Install-WindowsPackage -Package (Get-PackageDefinition $packageKey) }
 
 Refresh-ProcessPath
@@ -367,16 +497,33 @@ if (-not $DryRun -and -not $NoConfig -and (Read-YesNo 'Run optional post-install
 }
 
 if ($DryRun) {
-    Write-Host "`n[PLANNED] Ensure Projects, Workspace, and Scripts exist under the user profile."
+    Write-Host ''
+    Write-Status -Label 'PLANNED' -Message 'Ensure Projects, Workspace, and Scripts exist under the user profile.'
 } else {
     @('Projects', 'Workspace', 'Scripts') | ForEach-Object { New-Item -ItemType Directory -Path (Join-Path $env:USERPROFILE $_) -Force | Out-Null }
     Write-SetupLog 'Ensured user workspace folders exist.'
+    Add-ConfiguredItem 'Workspace'
 }
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "Profile:   $($profileDefinition.name)"
-if ($DryRun) { Write-Host "Planned:   $($script:PlannedCount)" } else {
-    Write-Host "Installed: $($script:InstalledCount)"; Write-Host "Skipped:   $($script:SkippedCount)"; Write-Host "Failed:    $($script:FailedCount)"; Write-Host "Log:       $($script:LogPath)"
+Write-Host 'Summary' -ForegroundColor Cyan
+Write-Host "`nProfile:   $($profileDefinition.name)"
+if ($DryRun) { Write-Host "Planned:   $($script:PlannedCount)" }
+Write-Host "Installed: $($script:InstalledCount)"
+Write-Host "Skipped:   $($script:SkippedCount)"
+Write-Host "Failed:    $($script:FailedCount)"
+Write-Host 'Configured:'
+if ($script:ConfiguredItems.Count -gt 0) {
+    foreach ($configuredItem in $script:ConfiguredItems) { Write-Host "  $configuredItem" }
+} elseif ($DryRun) {
+    Write-Host '  None (dry-run)'
+} else {
+    Write-Host '  None'
+}
+if ($DryRun) {
+    Write-Host 'Log:       Not created (dry-run)'
+} else {
+    Write-Host "Log:       $($script:LogPath)"
     Write-SetupLog "Finished: installed=$($script:InstalledCount), skipped=$($script:SkippedCount), failed=$($script:FailedCount)."
 }
 Write-Host '============================================================' -ForegroundColor Cyan

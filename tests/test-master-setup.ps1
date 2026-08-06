@@ -14,11 +14,12 @@ function Assert-True {
 }
 
 $bootstrap = [IO.File]::ReadAllText($bootstrapPath, [Text.UTF8Encoding]::new($false))
+$engineSource = [IO.File]::ReadAllText($enginePath, [Text.UTF8Encoding]::new($false))
 $packages = Get-Content -LiteralPath $packagesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $profiles = Get-Content -LiteralPath $profilesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $readme = Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8
 
-Assert-True ($bootstrap -match 'set "VERSION=6\.0\.0"') 'Bootstrap version 6.0.0 is missing.'
+Assert-True ($bootstrap -match 'set "VERSION=6\.1\.0"') 'Bootstrap version 6.1.0 is missing.'
 Assert-True ($bootstrap -match 'cowebsLB/cowebs-developer-setup') 'Pinned GitHub repository is missing.'
 Assert-True ($bootstrap -match 'releases/download/v%VERSION%') 'Pinned release URL is missing.'
 Assert-True ($bootstrap -match 'Security\.Cryptography\.SHA256') '.NET SHA-256 verification is missing.'
@@ -34,12 +35,24 @@ Assert-True ($bootstrap -match '--pack') 'Use-case pack bootstrap option is miss
 Assert-True ($bootstrap -match '--essentials-only') 'Essentials-only bootstrap option is missing.'
 Assert-True ($bootstrap -match '--list-packs') 'Pack listing bootstrap option is missing.'
 Assert-True ($bootstrap -match 'COWEBS_SETUP_PACKS') 'Environment-based pack handoff is missing.'
+Assert-True ($bootstrap -match 'WindowsPrincipal') 'Administrator-token detection is missing from the bootstrap.'
+Assert-True ($bootstrap -match "Verb='RunAs'") 'One-time RunAs elevation is missing from the bootstrap.'
+Assert-True ($bootstrap -match 'COWEBS_SETUP_RELAUNCH_PACKS') 'Safe pack preservation across elevation is missing.'
+Assert-True ($bootstrap -match 'if "!DRY_RUN!"=="0"') 'Dry-run elevation bypass is missing.'
 Assert-True (-not [regex]::IsMatch($bootstrap, '(?<!\r)\n')) 'master-setup.bat must use Windows CRLF line endings.'
 Assert-True ($readme -match 'actions/workflows/validate\.yml/badge\.svg') 'README validation badge is missing.'
 Assert-True ($readme -match 'img\.shields\.io/github/v/release') 'README release badge is missing.'
 Assert-True ($readme -match 'license-MIT') 'README license badge is missing.'
 Assert-True ($readme -match 'platform-Windows') 'README platform badge is missing.'
 Assert-True ($readme -match 'manifest-v2') 'README schema badge is missing.'
+Assert-True ($engineSource -match "INSTALLING\s*=\s*'Cyan'") 'INSTALLING status must be cyan.'
+Assert-True ($engineSource -match "SUCCESS\s*=\s*'Green'") 'SUCCESS status must be green.'
+Assert-True ($engineSource -match "SKIPPED\s*=\s*'Yellow'") 'SKIPPED status must be yellow.'
+Assert-True ($engineSource -match "FAILED\s*=\s*'Red'") 'FAILED status must be red.'
+Assert-True ($engineSource -match 'Add-ConfiguredItem') 'Configured-component tracking is missing.'
+Assert-True ($engineSource -match 'Add-ConfigurationFailure') 'Configuration-failure tracking is missing.'
+Assert-True ($engineSource -match 'function Test-IsAdministrator') 'Engine administrator check is missing.'
+Assert-True ($engineSource -match "exit 7") 'Engine must reject an unelevated real installation.'
 
 $packageKeys = @($packages.packages | ForEach-Object { $_.key })
 $wingetIds = @($packages.packages | ForEach-Object { $_.platforms.windows.wingetId })
@@ -48,6 +61,19 @@ Assert-True ($packageKeys.Count -ge 80) "Expected at least 80 professional packa
 Assert-True (($packageKeys | Sort-Object -Unique).Count -eq $packageKeys.Count) 'Package keys must be unique.'
 Assert-True (($wingetIds | Sort-Object -Unique).Count -eq $wingetIds.Count) 'Winget IDs must be unique.'
 Assert-True (-not ($wingetIds -contains $null)) 'Every package must have a Windows Winget ID.'
+$estimatePolicy = $packages.windowsEstimatePolicy
+Assert-True ($null -ne $estimatePolicy) 'Windows estimate policy is missing.'
+foreach ($estimateName in @('default', 'diskHeavy')) {
+    $estimate = $estimatePolicy.PSObject.Properties[$estimateName].Value
+    Assert-True ($estimate.downloadMbMin -gt 0 -and $estimate.downloadMbMax -ge $estimate.downloadMbMin) "Estimate '$estimateName' has an invalid download range."
+    Assert-True ($estimate.installMinutesMin -gt 0 -and $estimate.installMinutesMax -ge $estimate.installMinutesMin) "Estimate '$estimateName' has an invalid install-time range."
+}
+foreach ($overrideProperty in @($estimatePolicy.overrides.PSObject.Properties)) {
+    $estimate = $overrideProperty.Value
+    Assert-True ($packageKeys -contains $overrideProperty.Name) "Estimate override references unknown package '$($overrideProperty.Name)'."
+    Assert-True ($estimate.downloadMbMin -gt 0 -and $estimate.downloadMbMax -ge $estimate.downloadMbMin) "Estimate override '$($overrideProperty.Name)' has an invalid download range."
+    Assert-True ($estimate.installMinutesMin -gt 0 -and $estimate.installMinutesMax -ge $estimate.installMinutesMin) "Estimate override '$($overrideProperty.Name)' has an invalid install-time range."
+}
 foreach ($package in $packages.packages) {
     Assert-True (-not [string]::IsNullOrWhiteSpace($package.name)) "Package '$($package.key)' has no display name."
     Assert-True (@('core', 'recommended', 'optional') -contains $package.tier) "Package '$($package.key)' has invalid tier '$($package.tier)'."
@@ -107,6 +133,12 @@ foreach ($profile in $profileExpectations.Keys) {
     $joined = $output -join "`n"
     Assert-True ($exitCode -eq 0) "$profile engine dry-run exited with code $exitCode."
     Assert-True ($joined -match "Planned:\s+$($profileExpectations[$profile])") "$profile did not resolve to $($profileExpectations[$profile]) unique packages."
+    Assert-True ($joined -match 'Estimated Download \(fresh setup\):') "$profile did not print a download estimate."
+    Assert-True ($joined -match 'Estimated Install Time:') "$profile did not print an install-time estimate."
+    Assert-True ($joined -match 'Summary') "$profile did not print the final summary heading."
+    Assert-True ($joined -match 'Configured:\s+None \(dry-run\)') "$profile dry-run did not report configuration state."
+    Assert-True ($joined -match 'Log:\s+Not created \(dry-run\)') "$profile dry-run did not report log state."
+    Assert-True ($joined -match 'Privilege:\s+(Administrator|Standard user \(preview only\))') "$profile dry-run did not report privilege state."
 
     $output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -Profile $profile -EssentialsOnly -DryRun -NoConfig -NoRestart 2>&1
     $exitCode = $LASTEXITCODE

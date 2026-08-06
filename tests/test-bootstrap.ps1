@@ -22,7 +22,11 @@ try {
     $joined = $output -join "`n"
 
     if ($exitCode -ne 0) { throw "Bootstrap dry-run exited with code $exitCode.`n$joined" }
-    if ($joined -notmatch 'Master Developer Environment Setup v6\.0\.0') { throw 'Branded v6.0.0 header was not rendered.' }
+    if ($joined -notmatch 'Master Developer Environment Setup v6\.1\.0') { throw 'Branded v6.1.0 header was not rendered.' }
+    if ($joined -notmatch 'Estimated Download \(fresh setup\):') { throw 'Bootstrap did not show the download estimate.' }
+    if ($joined -notmatch 'Estimated Install Time:') { throw 'Bootstrap did not show the install-time estimate.' }
+    if ($joined -notmatch 'Summary') { throw 'Bootstrap did not show the final summary.' }
+    if ($joined -notmatch 'Privilege:\s+(Administrator|Standard user \(preview only\))') { throw 'Bootstrap did not show the current privilege state.' }
     if ($joined -notmatch '20 unique packages selected') { throw 'Profile and repeatable pack options did not resolve 20 packages.' }
     if ($joined -notmatch 'Packs: backend-node, backend-python, cloud-aws') { throw 'Bootstrap did not safely hand explicit packs to the engine.' }
     if ($joined -notmatch 'Planned:\s+20') { throw 'Pack-aware bootstrap dry-run did not finish successfully.' }

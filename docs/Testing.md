@@ -13,6 +13,8 @@ The suite validates:
 - all 34 pack references and all nine profile references and inheritance results;
 - direct Windows engine default and essentials-only dry-runs for every profile;
 - compatible explicit-pack composition, expected conflict rejection, dependency expansion, and pack listing;
+- estimate-policy ranges and override references, estimate rendering for every profile, status-color contracts, and final-summary fields;
+- bootstrap and engine Administrator-token checks, one-time `RunAs` handoff, privilege-state rendering, safe pack preservation, and dry-run elevation bypass;
 - bootstrap version, release URL, checksum, branding, CRLF, and cleanup contract;
 - release ZIP creation;
 - checksum verification, extraction, repeated-pack handoff, final summary, and temporary deletion;
@@ -23,4 +25,4 @@ GitHub Actions runs the same suite on `windows-latest` for pushes and pull reque
 
 Real package installations must be tested in Windows Sandbox or a disposable VM before a major public release. Dry-run success is not represented as real-install validation.
 
-Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The v6.0.0 catalog passed this live check for all 86 IDs on 2026-08-07.
+Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The catalog passed this live check for all 86 IDs on 2026-08-07.

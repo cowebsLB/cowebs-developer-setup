@@ -1,15 +1,15 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-title COWebs.lb Master Developer Environment Setup v6.0.0
+title COWebs.lb Master Developer Environment Setup v6.1.0
 color 0B
 for /f "tokens=2 delims=:" %%C in ('chcp') do set "ORIGINAL_CODE_PAGE=%%C"
 chcp 65001 >nul
 
-set "VERSION=6.0.0"
+set "VERSION=6.1.0"
 set "REPOSITORY=cowebsLB/cowebs-developer-setup"
-set "ASSET_NAME=cowebs-developer-setup-v6.0.0.zip"
+set "ASSET_NAME=cowebs-developer-setup-v6.1.0.zip"
 set "DOWNLOAD_URL=https://github.com/%REPOSITORY%/releases/download/v%VERSION%/%ASSET_NAME%"
-set "EXPECTED_SHA256=FE420680AB209531D19756E3194D625D64607650A98FFA40D4C7F72F3EBC4644"
+set "EXPECTED_SHA256=0CE008E61DAE7EA26989E6C6528A251D4BE825DEDFFFB286933BB2F9BB00AE46"
 if defined COWEBS_SETUP_BUNDLE_PATH if defined COWEBS_SETUP_BUNDLE_SHA256 set "EXPECTED_SHA256=%COWEBS_SETUP_BUNDLE_SHA256%"
 set "PROFILE="
 set "DRY_RUN=0"
@@ -18,11 +18,14 @@ set "NO_RESTART=0"
 set "KEEP_TEMP=0"
 set "ESSENTIALS_ONLY=0"
 set "LIST_PACKS=0"
+set "INHERITED_RELAUNCH_PACKS=%COWEBS_SETUP_RELAUNCH_PACKS%"
+set "COWEBS_SETUP_RELAUNCH_PACKS="
 set "COWEBS_SETUP_PACKS="
 
 call :ParseArguments %*
 set "PARSE_EXIT=!errorlevel!"
 if not "!PARSE_EXIT!"=="0" goto ExitWithParseError
+if defined INHERITED_RELAUNCH_PACKS set "COWEBS_SETUP_PACKS=!INHERITED_RELAUNCH_PACKS!"
 
 call :ShowHeader
 if "!SHOW_HELP!"=="1" (
@@ -39,6 +42,11 @@ if errorlevel 1 (
     echo [ERROR] Windows PowerShell is required but was not found.
     set "FINAL_EXIT=3"
     goto CleanupAndExit
+)
+
+if "!DRY_RUN!"=="0" (
+    call :EnsureAdministrator
+    if "!ELEVATION_HANDOFF!"=="1" goto CleanupAndExit
 )
 
 set "TEMP_ROOT=%TEMP%\COWebs.lb"
@@ -201,6 +209,37 @@ for %%P in (backend frontend android devops ai cyber game fullstack everything) 
 )
 echo [ERROR] Unknown profile: %~1
 exit /b 1
+
+:EnsureAdministrator
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$identity=[Security.Principal.WindowsIdentity]::GetCurrent();" ^
+  "$principal=[Security.Principal.WindowsPrincipal]::new($identity);" ^
+  "if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { exit 0 } else { exit 1 }"
+if not errorlevel 1 (
+    echo [INFO] Privilege: Administrator
+    exit /b 0
+)
+
+echo [INFO] Privilege: Standard user
+echo [INFO] Requesting administrator approval once for the complete installation...
+set "COWEBS_SETUP_BOOTSTRAP=%~f0"
+set "COWEBS_SETUP_RELAUNCH_PACKS=!COWEBS_SETUP_PACKS!"
+set "COWEBS_SETUP_RELAUNCH_ARGUMENTS="
+if defined PROFILE set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --profile !PROFILE!"
+if "!NO_CONFIG!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --no-config"
+if "!NO_RESTART!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --no-restart"
+if "!KEEP_TEMP!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --keep-temp"
+if "!ESSENTIALS_ONLY!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --essentials-only"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ErrorActionPreference='Stop';" ^
+  "try {" ^
+  "  $start=@{FilePath=$env:COWEBS_SETUP_BOOTSTRAP;Verb='RunAs';Wait=$true;PassThru=$true};" ^
+  "  if ($env:COWEBS_SETUP_RELAUNCH_ARGUMENTS) { $start.ArgumentList=$env:COWEBS_SETUP_RELAUNCH_ARGUMENTS.Trim() };" ^
+  "  $process=Start-Process @start; exit $process.ExitCode" ^
+  "} catch { Write-Host '[ERROR] Administrator approval was not granted or elevation failed.' -ForegroundColor Red; exit 7 }"
+set "FINAL_EXIT=!errorlevel!"
+set "ELEVATION_HANDOFF=1"
+exit /b 0
 
 :ShowUsage
 echo Usage:

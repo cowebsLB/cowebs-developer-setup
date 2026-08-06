@@ -39,9 +39,19 @@ winget search --id PACKAGE_ID --exact --source winget
 
 The Windows engine continues through remaining packages and exits with code `1` if any package fails.
 
+## The estimate differs from the real download or duration
+
+Estimates are conservative fresh-setup planning ranges, not measurements from Winget. Already-installed packages and cached installers reduce them. Package updates, network speed, disk performance, elevation prompts, restarts, and optional components can increase them. Downloads performed later by Android Studio, Unity, Epic Games Launcher, Ollama models, VS Code extensions, or similar tools are not included.
+
 ## A newly installed command is unavailable
 
 The script refreshes PATH before optional configuration. Some installers still require a new terminal or Windows restart before their commands become available. The configuration step will warn and skip a missing command.
+
+## Windows asks for Administrator approval repeatedly
+
+Start the installation through `master-setup.bat`, not `src\windows\setup.ps1` directly. A real bootstrap run should show one UAC request and then `Privilege: Administrator`. If it shows `Standard user`, the elevation handoff did not complete; approve the prompt and check whether endpoint security blocked the elevated child process.
+
+Vendor-owned license, driver, account, or configuration dialogs are not Windows privilege prompts and may still appear. Do not disable UAC or change the system consent policy to hide them. If repeated Windows UAC prompts continue after the setup reports Administrator privilege, retain the log with `--keep-temp` and report the affected package name.
 
 ## Network warning despite working internet
 

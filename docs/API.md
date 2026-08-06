@@ -17,11 +17,15 @@ master-setup.bat [options]
 - `--version`: Print the bootstrap version.
 - `--help` or `-h`: Print help without downloading the payload.
 
-Exit codes: `0` success, `1` package failure, `2` argument error, `3` missing runtime prerequisite, `4` temporary-directory failure, `5` download/checksum/extraction failure, and `6` invalid payload structure.
+Exit codes: `0` success, `1` package failure, `2` argument error, `3` missing runtime prerequisite, `4` temporary-directory failure, `5` download/checksum/extraction failure, `6` invalid payload structure, and `7` Administrator approval/elevation failure.
+
+Real installation commands perform one Windows `RunAs` handoff when the current token is not elevated. `--help`, `--version`, `--list-packs`, and `--dry-run` never request elevation. The elevated handoff reconstructs only validated scalar options; selected pack keys are preserved as environment data.
 
 ## Package manifest
 
 Schema v2 requires every package to have a unique `key`, display `name`, `tier`, one or more `categories`, `installStrategy`, `license`, and platform mappings. Windows mappings require an exact `wingetId` and can optionally define `wingetOverride`. Optional `configure`, `requires`, `conflictsWith`, and `conditions` values connect shared intent to platform behavior. Referenced dependencies and conflicts must exist; conflicts are symmetric.
+
+`windowsEstimatePolicy` defines `default` and `diskHeavy` ranges plus package-keyed `overrides`. Every range contains `downloadMbMin`, `downloadMbMax`, `installMinutesMin`, and `installMinutesMax`. Override keys must reference known packages. These values are planning guidance for a fresh setup; they exclude later SDK, game-engine, model, extension, and update downloads.
 
 ## Profile manifest
 

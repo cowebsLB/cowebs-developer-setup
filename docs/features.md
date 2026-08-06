@@ -1,6 +1,6 @@
 # Features
 
-## Available in v6.0.0
+## Available in v6.1.0
 
 - Full UTF-8 COWEBS.LB block-letter branding
 - Single-file Windows user experience
@@ -13,7 +13,11 @@
 - Repeatable CLI pack selection, interactive optional-pack selection, essentials-only mode, and pack listing
 - Package tier, category, license, condition, and installer-strategy metadata
 - Interactive and CLI-driven execution
+- One-time UAC elevation for complete real installations, with prompt-free previews and visible privilege state
 - Installation, skip, failure, and dry-run summaries
+- Fresh-setup download and install-time estimate ranges
+- Color-coded installing, success, skipped, failed, and planned status labels
+- Final installed/skipped/failed counts, configured-component inventory, and log location
 - Optional Git, Git LFS, GitHub CLI, VS Code, Node.js, Python/uv, Docker, AWS, and Azure configuration
 - Authorized-lab confirmation for Kali WSL and package-specific Visual Studio game workload installation
 - Persistent secret-free logging
