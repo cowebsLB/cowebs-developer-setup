@@ -4,9 +4,13 @@ A branded, profile-driven developer workstation bootstrapper designed to support
 
 Windows is the first implemented platform. Users download one file: `master-setup.bat`.
 
+- [GitHub repository](https://github.com/cowebsLB/cowebs-developer-setup)
+- [Latest release](https://github.com/cowebsLB/cowebs-developer-setup/releases/latest)
+- [Download master-setup.bat v5.0.0](https://github.com/cowebsLB/cowebs-developer-setup/releases/download/v5.0.0/master-setup.bat)
+
 ## Windows quick start
 
-Download `master-setup.bat` from the latest GitHub release, then preview the complete setup:
+Download `master-setup.bat` from the official GitHub release, then preview the complete setup:
 
 ```bat
 master-setup.bat --profile everything --dry-run
