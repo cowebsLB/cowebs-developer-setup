@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "profiles": {
+    "backend": {
+      "name": "Backend Developer",
+      "packages": ["git", "github-cli", "vscode", "node", "python", "openjdk", "docker", "postgresql", "postman"]
+    },
+    "frontend": {
+      "name": "Frontend Developer",
+      "packages": ["git", "github-cli", "vscode", "node", "yarn", "pnpm", "chrome", "firefox", "postman"]
+    },
+    "android": {
+      "name": "Android Developer",
+      "packages": ["git", "github-cli", "vscode", "android-studio", "openjdk", "node", "python", "docker"]
+    },
+    "devops": {
+      "name": "DevOps Engineer",
+      "packages": ["git", "github-cli", "vscode", "docker", "kubectl", "helm", "terraform", "aws-cli", "azure-cli", "python", "node"]
+    },
+    "ai": {
+      "name": "AI / Machine Learning",
+      "packages": ["git", "github-cli", "vscode", "python", "miniconda", "jupyterlab", "docker", "node"]
+    },
+    "cyber": {
+      "name": "Cybersecurity",
+      "packages": ["git", "github-cli", "vscode", "python", "nmap", "wireshark"]
+    },
+    "game": {
+      "name": "Game Development",
+      "packages": ["git", "vscode", "unity-hub", "blender", "godot"]
+    },
+    "fullstack": {
+      "name": "Full Stack",
+      "extends": ["backend", "frontend"],
+      "packages": []
+    },
+    "everything": {
+      "name": "Everything",
+      "extends": ["backend", "frontend", "android", "devops", "ai", "cyber", "game"],
+      "packages": []
+    }
+  }
+}

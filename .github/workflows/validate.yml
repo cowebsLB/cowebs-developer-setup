@@ -1,0 +1,19 @@
+name: Validate setup
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run safe setup tests
+        shell: pwsh
+        run: ./tests/run-tests.ps1

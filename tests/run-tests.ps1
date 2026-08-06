@@ -1,0 +1,11 @@
+$ErrorActionPreference = 'Stop'
+$testRoot = $PSScriptRoot
+
+& (Join-Path $testRoot 'test-master-setup.ps1')
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+& (Join-Path $testRoot 'test-bootstrap.ps1')
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host 'PASS: complete COWebs.lb developer setup test suite.' -ForegroundColor Green
+exit 0

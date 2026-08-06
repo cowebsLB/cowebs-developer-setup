@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    { "key": "git", "name": "Git", "configure": "git", "platforms": { "windows": { "wingetId": "Git.Git" } } },
+    { "key": "github-cli", "name": "GitHub CLI", "configure": "github", "platforms": { "windows": { "wingetId": "GitHub.cli" } } },
+    { "key": "vscode", "name": "Visual Studio Code", "configure": "vscode", "platforms": { "windows": { "wingetId": "Microsoft.VisualStudioCode" } } },
+    { "key": "node", "name": "Node.js", "configure": "node", "platforms": { "windows": { "wingetId": "OpenJS.NodeJS" } } },
+    { "key": "python", "name": "Python 3.14", "configure": "python", "platforms": { "windows": { "wingetId": "Python.Python.3.14" } } },
+    { "key": "openjdk", "name": "OpenJDK 21", "platforms": { "windows": { "wingetId": "Microsoft.OpenJDK.21" } } },
+    { "key": "docker", "name": "Docker Desktop", "configure": "docker", "platforms": { "windows": { "wingetId": "Docker.DockerDesktop" } } },
+    { "key": "postgresql", "name": "PostgreSQL 18", "platforms": { "windows": { "wingetId": "PostgreSQL.PostgreSQL.18" } } },
+    { "key": "postman", "name": "Postman", "platforms": { "windows": { "wingetId": "Postman.Postman" } } },
+    { "key": "yarn", "name": "Yarn", "platforms": { "windows": { "wingetId": "Yarn.Yarn" } } },
+    { "key": "pnpm", "name": "pnpm", "platforms": { "windows": { "wingetId": "pnpm.pnpm" } } },
+    { "key": "chrome", "name": "Google Chrome", "platforms": { "windows": { "wingetId": "Google.Chrome" } } },
+    { "key": "firefox", "name": "Mozilla Firefox", "platforms": { "windows": { "wingetId": "Mozilla.Firefox" } } },
+    { "key": "android-studio", "name": "Android Studio", "platforms": { "windows": { "wingetId": "Google.AndroidStudio" } } },
+    { "key": "kubectl", "name": "kubectl", "platforms": { "windows": { "wingetId": "Kubernetes.kubectl" } } },
+    { "key": "helm", "name": "Helm", "platforms": { "windows": { "wingetId": "Helm.Helm" } } },
+    { "key": "terraform", "name": "Terraform", "platforms": { "windows": { "wingetId": "Hashicorp.Terraform" } } },
+    { "key": "aws-cli", "name": "AWS CLI", "configure": "aws", "platforms": { "windows": { "wingetId": "Amazon.AWSCLI" } } },
+    { "key": "azure-cli", "name": "Azure CLI", "configure": "azure", "platforms": { "windows": { "wingetId": "Microsoft.AzureCLI" } } },
+    { "key": "miniconda", "name": "Miniconda 3", "platforms": { "windows": { "wingetId": "Anaconda.Miniconda3" } } },
+    { "key": "jupyterlab", "name": "JupyterLab", "platforms": { "windows": { "wingetId": "ProjectJupyter.JupyterLab" } } },
+    { "key": "nmap", "name": "Nmap", "platforms": { "windows": { "wingetId": "Insecure.Nmap" } } },
+    { "key": "wireshark", "name": "Wireshark", "platforms": { "windows": { "wingetId": "WiresharkFoundation.Wireshark" } } },
+    { "key": "unity-hub", "name": "Unity Hub", "platforms": { "windows": { "wingetId": "Unity.UnityHub" } } },
+    { "key": "blender", "name": "Blender", "platforms": { "windows": { "wingetId": "BlenderFoundation.Blender" } } },
+    { "key": "godot", "name": "Godot Engine", "platforms": { "windows": { "wingetId": "GodotEngine.GodotEngine" } } }
+  ]
+}
