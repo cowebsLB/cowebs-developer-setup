@@ -8,6 +8,17 @@
 
 The command produces `dist/cowebs-developer-setup-v6.0.0.zip` and prints its SHA-256. The current local release candidate hash is `FE420680AB209531D19756E3194D625D64607650A98FFA40D4C7F72F3EBC4644`.
 
+## Published release
+
+Version 6.0.0 is published at `https://github.com/cowebsLB/cowebs-developer-setup/releases/tag/v6.0.0` from source commit `08ce139919d60c6b5909c7c4866da6043fe003b6`.
+
+Published assets:
+
+- `master-setup.bat`
+- `cowebs-developer-setup-v6.0.0.zip`
+
+The public ZIP SHA-256 is `FE420680AB209531D19756E3194D625D64607650A98FFA40D4C7F72F3EBC4644`.
+
 ## Release procedure
 
 1. Run the complete test suite.
