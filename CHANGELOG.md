@@ -8,6 +8,16 @@ All notable changes follow semantic versioning.
 
 - Advanced development builds to `6.3.0-dev` and protected the published v6.2.0 identity from rebuilds on newer source.
 
+### Added
+
+- Added a source-only typed Linux provider adapter for Ubuntu and Fedora with direct `apt-get`, `dnf`, `snap`, and `flatpak` detection and installation commands.
+- Added Linux adapter tests for manager/platform compatibility, user and machine Flatpak scopes, dry-run isolation, process-start failures, native inventory queries, and unsafe positional-token rejection.
+
+### Security
+
+- Required explicit Linux privilege, scope, and Flatpak remote contracts; rejected unsupported cross-distribution managers, custom APT/DNF/Snap sources, option-shaped identifiers/remotes, and malformed or control-character arguments before process execution.
+- Made APT detection require the exact installed dpkg status instead of treating residual configuration state as an installed package.
+
 ## [6.2.0] - 2026-08-09
 
 ### Added

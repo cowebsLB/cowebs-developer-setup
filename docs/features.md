@@ -32,8 +32,8 @@
 |---|---|---|
 | Windows | Implemented | Winget |
 | macOS | Planned | Homebrew |
-| Ubuntu | Planned | APT, Snap, or Flatpak where appropriate |
-| Fedora | Planned | DNF or Flatpak where appropriate |
+| Ubuntu | Adapter foundation (source-only) | APT, Snap, or Flatpak where appropriate |
+| Fedora | Adapter foundation (source-only) | DNF, Snap, or Flatpak where appropriate |
 
 ## Development architecture modernization (source-only in v6.2.0)
 
@@ -43,6 +43,7 @@
 - Accepted ADRs for the Go controller, least-privilege broker, provider adapters, and resumable event journal
 - Strict dependency-free Go catalog loader and deterministic shadow planner
 - Windows provider adapter (`internal/adapter/windows`) with native Winget detection and direct binary execution
+- Linux provider adapter (`internal/adapter/linux`) with native APT/dpkg, DNF, Snap, and Flatpak detection plus direct, shell-free typed installation commands
 - One-shot privileged broker (`internal/broker`) with canonical-plan reconstruction, catalog digest matching, real-run elevation enforcement, direct provider execution, installed-package skipping, and redacted event streams
 - Strict structured execution journal and flushed atomic state snapshot engine (`internal/journal`) with monotonic sequences and plan-bound fail-closed resumption
 - System diagnostic engine (`internal/doctor`) for platform, package manager, workspace directory, and catalog integrity checks

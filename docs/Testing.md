@@ -17,6 +17,7 @@ The suite validates:
 - independent PowerShell-versus-Go parity for all nine default plans, all nine essentials-only plans, explicit multi-pack composition, exact Winget order, selected packs, estimates, and expected conflict failure;
 - canonical-plan regeneration and rejection of digest, provider, option, configuration, and unknown-field tampering before broker execution;
 - native process-start failure handling, already-installed package detection and paired-install skipping, and real-run elevation guard wiring;
+- Ubuntu/Fedora adapter manager routing, native dpkg/DNF/Snap/Flatpak detection, exact dpkg installed-state checks, typed install arguments, Flatpak user/machine scope, dry-run isolation, and positional-token rejection;
 - durable journal append/flush, state replacement, strict event decoding, monotonic sequence continuation, original-session resume, and plan/catalog mismatch rejection;
 - byte-identical Go JSON output for identical catalogs and inputs;
 - JSON syntax and schema versions;
@@ -36,6 +37,6 @@ The suite validates:
 
 GitHub Actions runs the same suite on `windows-latest` for pushes and pull requests using Node 24-compatible checkout and Go setup actions.
 
-Real package installations must be tested in Windows Sandbox or a disposable VM before a major public release. Dry-run success is not represented as real-install validation.
+Real package installations must be tested in Windows Sandbox or a disposable VM before a major public release. Linux provider integration must likewise run in disposable Ubuntu and Fedora VMs or containers with appropriate isolation; mocked adapter tests are not represented as repository availability or real-install validation.
 
 Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The v6.2.0 catalog passed this live check for all 86 IDs on 2026-08-09.

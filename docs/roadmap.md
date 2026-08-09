@@ -10,12 +10,13 @@
 - [x] Add per-package skipping after installed-package detection and an unattended bootstrap option.
 - [x] Implement the Windows provider adapter and one-shot privileged broker.
 - [x] Add structured journal, resume, status, doctor, and JSON-output commands.
+- [x] Implement the shell-free Ubuntu/Fedora adapter foundation for APT, DNF, Snap, and Flatpak.
 - [ ] Switch the generated Windows BAT only after disposable-VM parity and installation validation.
 
 ## Next platform milestones
 
-1. Ubuntu APT/Snap/Flatpak mappings and adapter tests.
-2. Fedora DNF/Flatpak mappings and adapter tests.
+1. Ubuntu APT/Snap/Flatpak mappings, unsupported-package reporting, and disposable-environment adapter integration tests.
+2. Fedora DNF/Snap/Flatpak mappings, unsupported-package reporting, and disposable-environment adapter integration tests.
 3. macOS Homebrew mappings, shell bootstrap, and adapter tests.
 
 ## Cross-platform improvements

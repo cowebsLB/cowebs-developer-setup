@@ -45,4 +45,4 @@ The temporary payload is removed after success or failure unless `--keep-temp` i
 
 ## Other operating systems
 
-macOS, Ubuntu, and Fedora adapters are architectural placeholders in v6.2.0 and are not yet runnable. The schema-v2 intent is cross-platform, but the released package mappings and tested execution path are Windows-only.
+macOS remains an architectural placeholder. Ubuntu and Fedora now have a source-only typed Go adapter foundation for APT, DNF, Snap, and Flatpak, but reviewed provider mappings, Linux orchestration, and a Unix bootstrap are not yet complete. The released schema-v2 package mappings and tested public execution path remain Windows-only.

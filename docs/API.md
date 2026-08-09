@@ -47,6 +47,8 @@ The `schema/` directory contains JSON Schema draft 2020-12 contracts for the fut
 
 Schema v3 provider entries declare package manager, exact provider ID, source, privilege, scope, native detection, typed installer options, and provider-specific estimates. Plans and broker messages identify allowlisted operations and intentionally contain no arbitrary command or shell field.
 
+The source-only Linux adapter currently accepts canonical plan operations for `ubuntu` and `fedora`. Ubuntu permits `apt-get`, Snap, and Flatpak; Fedora permits DNF, Snap, and Flatpak. APT, DNF, and Snap are currently machine-scoped elevated operations with their default configured repositories. Flatpak requires an explicit remote and either `user`/`user` or `elevated`/`machine` privilege and scope. These are internal execution contracts, not a released Linux CLI.
+
 Compile the production schema-v2 manifests into deterministic migration artifacts with:
 
 ```powershell

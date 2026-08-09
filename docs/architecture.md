@@ -25,7 +25,7 @@ master-setup.bat
 
 ## Platform adapter layer
 
-The Windows PowerShell adapter owns Winget behavior, pack selection, plan validation, an elevated-real-install guard, privilege reporting, preflight estimates, colored status rendering, PATH refresh, Windows-specific configuration tracking, folders, restart handling, authorized-lab confirmation, persistent logs, and the final execution summary. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
+The Windows PowerShell adapter owns Winget behavior, pack selection, plan validation, an elevated-real-install guard, privilege reporting, preflight estimates, colored status rendering, PATH refresh, Windows-specific configuration tracking, folders, restart handling, authorized-lab confirmation, persistent logs, and the final execution summary. The source-only Go Linux adapter owns typed Ubuntu/Fedora provider detection and direct APT, DNF, Snap, and Flatpak argument construction. It validates distribution compatibility, privilege, scope, source, and positional tokens before invoking a process and never constructs a shell command. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
 
 Windows estimates are catalog-driven. The manifest supplies conservative fallback and disk-heavy ranges plus overrides for unusually large packages. The adapter sums the resolved dependency-free plan before Winget runs; estimates describe a fresh setup and are not a promise of exact transfer size or duration.
 
@@ -46,12 +46,13 @@ The v6.2 source tree includes a development redesign foundation with versioned c
 - `internal/catalog` strictly loads and cross-validates the generated catalogs.
 - `internal/planner` resolves profile inheritance, packs, dependency order, conflicts, providers, estimates, and typed operations without invoking a package manager.
 - `internal/adapter/windows` implements native Winget detection, argument construction, and execution without invoking command shells.
+- `internal/adapter/linux` implements Ubuntu/Fedora validation, native dpkg/DNF/Snap/Flatpak detection, exact installed-state handling, and direct typed installation commands without invoking command shells.
 - `internal/broker` regenerates the canonical plan from verified catalogs, requires elevation for real execution, directly invokes the allowlisted Windows provider, skips installs already satisfied by detection, and emits redacted `execution-event-v1` events.
 - `internal/journal` handles strict schema-v1 JSONL event persistence, monotonic sequences, flushed atomic state snapshots, plan-bound recovery, and fail-closed resume validation.
 - `internal/doctor` executes diagnostic checks across OS compatibility, package manager availability, workspace directories, and catalog integrity.
 - `cmd/cowebs-setup` exposes the core via deterministic development CLI subcommands: `plan`, `broker`, `status`, `resume`, and `doctor` (with `--json` support).
 
-The shadow planner has exact black-box parity with the production PowerShell planner. The provider adapter, privileged broker, journal, resume/status flow, and diagnostic CLI have unit and CLI integration coverage, including the principal tamper and recovery boundaries; this is not a claim of exhaustive security proof or real-install validation. Schema v2 remains authoritative for `src/windows/setup.ps1` and the public release; neither the Go binary nor schema-v3 catalogs are included in that runtime ZIP.
+The shadow planner has exact black-box parity with the production PowerShell planner. The Windows and Linux provider adapters, Windows privileged broker, journal, resume/status flow, and diagnostic CLI have unit and CLI integration coverage, including the principal tamper and recovery boundaries; this is not a claim of exhaustive security proof or real-install validation. Linux provider tests use an injected process runner and do not claim that package mappings or real installations have been validated. Schema v2 remains authoritative for `src/windows/setup.ps1` and the public release; neither the Go binary nor schema-v3 catalogs are included in that runtime ZIP.
 
 ## Target architecture
 
