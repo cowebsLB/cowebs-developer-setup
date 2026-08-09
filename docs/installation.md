@@ -45,4 +45,4 @@ The temporary payload is removed after success or failure unless `--keep-temp` i
 
 ## Other operating systems
 
-macOS remains an architectural placeholder. Ubuntu and Fedora now have a source-only typed Go adapter foundation for APT, DNF, Snap, and Flatpak, but reviewed provider mappings, Linux orchestration, and a Unix bootstrap are not yet complete. The released schema-v2 package mappings and tested public execution path remain Windows-only.
+macOS remains an architectural placeholder. Ubuntu and Fedora have a source-only typed Go adapter foundation for APT, DNF, Snap, and Flatpak. Ten Ubuntu core providers now compile and pass bounded non-installing planner/adapter tests, while GitHub CLI is explicitly unsupported until its signed APT-repository prerequisite is modeled. The remaining provider catalog, Linux configuration, orchestration, native package, and Unix bootstrap are not complete, so there is no supported Linux installation command yet. The released and tested public execution path remains Windows-only.

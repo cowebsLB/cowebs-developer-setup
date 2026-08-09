@@ -4,6 +4,9 @@ $testRoot = $PSScriptRoot
 & (Join-Path $testRoot 'test-architecture-foundation.ps1')
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+& (Join-Path $testRoot 'test-ubuntu-planning.ps1')
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 & (Join-Path $testRoot 'test-go-shadow-planner.ps1')
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

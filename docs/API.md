@@ -23,7 +23,7 @@ Real installation commands perform one Windows `RunAs` handoff when the current 
 
 ## Package manifest
 
-Schema v2 requires every package to have a unique `key`, display `name`, `tier`, one or more `categories`, `installStrategy`, `license`, and platform mappings. Windows mappings require an exact `wingetId` and can optionally define `wingetOverride`. Optional `configure`, `requires`, `conflictsWith`, and `conditions` values connect shared intent to platform behavior. Referenced dependencies and conflicts must exist; conflicts are symmetric.
+Schema v2 requires every package to have a unique `key`, display `name`, `tier`, one or more `categories`, `installStrategy`, `license`, and platform mappings. Windows mappings require an exact `wingetId` and can optionally define `wingetOverride`. Reviewed Ubuntu mappings use `support` (`native`, `alternative`, `conditional`, or `unsupported`). Executable mappings require `manager`, `packageId`, `privilege`, `scope`, `architectures`, typed `installOptions`, and conservative `estimate`; Flatpak alone may define a `source`. Alternatives require `alternativeName`, conditional mappings require `condition`, and unsupported mappings require only `reason`. Optional `configure`, `requires`, `conflictsWith`, and `conditions` values connect shared intent to platform behavior. Referenced dependencies and conflicts must exist; conflicts are symmetric.
 
 `windowsEstimatePolicy` defines `default` and `diskHeavy` ranges plus package-keyed `overrides`. Every range contains `downloadMbMin`, `downloadMbMax`, `installMinutesMin`, and `installMinutesMax`. Override keys must reference known packages. These values are planning guidance for a fresh setup; they exclude later SDK, game-engine, model, extension, and update downloads.
 
@@ -72,7 +72,7 @@ Compile the production schema-v2 manifests into deterministic migration artifact
 ./scripts/convert-catalog-v2-to-v3.ps1 -OutputDirectory .tmp/catalog-v3
 ```
 
-The compiler writes `package-catalog.v3.json` and `profile-catalog.v3.json`. It validates known references, symmetric conflicts, profile inheritance, current Winget mappings, and safely representable installer options. The generated files are development artifacts and are not consumed by the v6.2 runtime.
+The compiler writes `package-catalog.v3.json` and `profile-catalog.v3.json`. It validates known references, symmetric conflicts, profile inheritance, current Winget mappings, safely representable installer options, and the typed Ubuntu compatibility contract. Unsupported classifications emit no provider. The generated files are development artifacts and are not consumed by the v6.2 runtime.
 
 ## Architecture modernization CLI (`cowebs-setup`)
 
@@ -120,7 +120,7 @@ go run ./cmd/cowebs-setup doctor `
   --json
 ```
 
-`--pack` is repeatable and `--essentials-only` omits inherited recommended packs. Required inputs vary by subcommand. When `broker --journal` omits `--state`, the state path defaults to `<journal>.state.json`; a non-empty journal must be continued through `resume`, never silently appended as a new session. `resume` requires a journal and rejects missing, malformed, or plan/catalog-mismatched state. Invalid catalogs, unknown IDs, dependency cycles, conflicts, non-canonical plans, unknown JSON fields, or missing elevation for a real broker run fail on standard error with a non-zero exit code.
+`--pack` is repeatable and `--essentials-only` omits inherited recommended packs. Required inputs vary by subcommand. When `broker --journal` omits `--state`, the state path defaults to `<journal>.state.json`; a non-empty journal must be continued through `resume`, never silently appended as a new session. `resume` requires a journal and rejects missing, malformed, or plan/catalog-mismatched state. Invalid catalogs, unknown IDs, dependency cycles, conflicts, non-canonical plans, unknown JSON fields, or missing elevation for a real broker run fail on standard error with a non-zero exit code. If several selected packages lack a provider, planning fails once with `unsupported packages for PLATFORM/ARCH: ID, ...`, retaining deterministic plan order and omitting no unsupported intent.
 
 Plans include the catalog digest, deterministic plan ID, selected packs, aggregate estimate, and ordered typed operations. Detection and installation operations contain only provider identifiers, privilege, scope, source, and tokenized installer options. Configuration operations contain an allowlisted intent and wait for all planned installs. No operation accepts arbitrary command or shell text.
 

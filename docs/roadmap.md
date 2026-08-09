@@ -7,7 +7,7 @@
 | Windows v6.2.0 | Released and verified | Schema v2 plus `src/windows/setup.ps1` |
 | Go planner and schema v3 | Source-only, parity proven | Not included in the public runtime ZIP |
 | Windows Go adapter and broker | Source-only, tested | Runtime cutover still gated on real-install validation and controller-owned elevation |
-| Ubuntu/Fedora adapter | Source-only foundation complete | No reviewed Linux provider catalog, broker orchestration, or Unix bootstrap yet |
+| Ubuntu/Fedora adapter | Ubuntu bounded core planning; Fedora adapter foundation | No Linux broker orchestration or Unix bootstrap yet |
 | Public `cowebs` CLI | Planned product surface | Existing `cowebs-setup` remains the source-only development engine |
 | macOS | Planned after the Linux path | No adapter or provider catalog yet |
 
@@ -35,16 +35,17 @@
 - [x] Distinguish residual dpkg configuration from an installed package.
 - [x] Cover dry-run isolation, process-start failure, mismatched managers, malformed arguments, and Flatpak scope in unit tests.
 
-### Phase 2: Ubuntu catalog and planning — next
+### Phase 2: Ubuntu catalog and planning — in progress
 
-- [ ] Define the deterministic schema-v2 compatibility input for reviewed Ubuntu providers without creating a hand-maintained schema-v3 catalog.
+- [x] Define the deterministic schema-v2 compatibility input for reviewed Ubuntu providers without creating a hand-maintained schema-v3 catalog.
+- [x] Classify the 11-package core slice: seven native packages, one documented alternative, two conditional Snap packages, and one explicit unsupported package.
 - [ ] Classify every logical package as supported, replaced by a documented Linux alternative, conditionally supported, or unsupported on Ubuntu.
 - [ ] Add exact APT, Snap, or Flatpak provider identifiers, source, privilege, scope, architecture, typed options, and conservative estimates.
-- [ ] Make the compatibility compiler emit deterministic Ubuntu providers while retaining byte-stable Windows output.
-- [ ] Add explicit planner diagnostics that list all unsupported packages for the selected profile instead of failing on only the first missing provider or silently omitting intent.
-- [ ] Prove at least one bounded Ubuntu profile/pack plan end to end through compilation, planning, detection, dry-run rendering, and deterministic JSON.
+- [x] Make the compatibility compiler emit deterministic Ubuntu providers while retaining the Windows provider contract and production runtime behavior.
+- [x] Add explicit planner diagnostics that list all unsupported packages for the selected profile instead of failing on only the first missing provider or silently omitting intent.
+- [x] Prove one bounded ten-package Ubuntu plan end to end through compilation, planning, detection, dry-run rendering, and deterministic JSON.
 - [ ] Map supported configuration intents to Linux-specific implementations; leave unsupported configuration explicit.
-- [ ] Validate provider availability against official Ubuntu, Snap, and Flathub sources without installing on the developer workstation.
+- [x] Validate the bounded core providers against official Ubuntu and Snap sources without installing on the developer workstation; retain GitHub CLI as unsupported pending its signed APT-repository prerequisite.
 
 ### Phase 3: Fedora catalog and planning
 
@@ -136,4 +137,4 @@
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The immediate implementation sequence remains Ubuntu compatibility mappings and complete unsupported-package diagnostics, followed by a bounded Ubuntu end-to-end plan. Fedora should reuse that proven path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.
+The immediate implementation sequence is to classify and map the remaining Ubuntu packages, introduce typed repository/manager prerequisites for cases such as GitHub CLI, and implement Linux-specific configuration intents. Fedora should reuse the proven compiler, diagnostic, and bounded-plan path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.

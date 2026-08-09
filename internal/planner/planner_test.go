@@ -1,6 +1,7 @@
 package planner
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -71,6 +72,27 @@ func TestBuildRejectsConflictsAndUnsupportedTargets(t *testing.T) {
 	_, err = Build(catalogs, Input{ProfileID: "child", Architecture: "mips"})
 	if err == nil || !strings.Contains(err.Error(), "unsupported architecture") {
 		t.Fatalf("architecture error = %v", err)
+	}
+}
+
+func TestBuildReportsEveryUnsupportedPackageInPlanOrder(t *testing.T) {
+	catalogs := testCatalogs()
+	ubuntuProvider := catalog.Provider{Manager: "apt-get", PackageID: "core", Privilege: "elevated", Scope: "machine", Architectures: []string{"x64"}, Detection: catalog.Detection{Type: "manager-native"}}
+	core := catalogs.PackageByID["core"]
+	core.Providers["ubuntu"] = []catalog.Provider{ubuntuProvider}
+	catalogs.PackageByID["core"] = core
+
+	_, err := Build(catalogs, Input{ProfileID: "child", Platform: "ubuntu", Architecture: "x64"})
+	var unsupported *UnsupportedPackagesError
+	if !errors.As(err, &unsupported) {
+		t.Fatalf("error = %v, want UnsupportedPackagesError", err)
+	}
+	want := []string{"dependency", "parent", "child", "recommended-package"}
+	if !reflect.DeepEqual(unsupported.PackageIDs, want) {
+		t.Fatalf("unsupported package ids = %v, want %v", unsupported.PackageIDs, want)
+	}
+	if unsupported.Error() != "unsupported packages for ubuntu/x64: dependency, parent, child, recommended-package" {
+		t.Fatalf("unexpected diagnostic: %s", unsupported.Error())
 	}
 }
 

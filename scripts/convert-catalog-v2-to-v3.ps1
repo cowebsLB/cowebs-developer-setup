@@ -45,6 +45,34 @@ function Assert-KnownIds {
     }
 }
 
+function Assert-OnlyProperties {
+    param($Object, [string[]]$Allowed, [string]$Context)
+    foreach ($property in @($Object.PSObject.Properties)) {
+        if ($Allowed -notcontains [string]$property.Name) {
+            throw "$Context contains unsupported field '$($property.Name)'."
+        }
+    }
+}
+
+function Assert-NonEmptyText {
+    param($Value, [string]$Context)
+    if (-not ($Value -is [string]) -or [string]::IsNullOrWhiteSpace([string]$Value) -or [string]$Value -match '[\x00-\x1F\x7F]') {
+        throw "$Context must be non-empty text without control characters."
+    }
+}
+
+function Assert-Estimate {
+    param($Estimate, [string]$Context)
+    if (-not $Estimate) { throw "$Context is missing estimate ranges." }
+    Assert-OnlyProperties -Object $Estimate -Allowed @('downloadMbMin', 'downloadMbMax', 'installMinutesMin', 'installMinutesMax') -Context "$Context estimate"
+    foreach ($name in @('downloadMbMin', 'downloadMbMax', 'installMinutesMin', 'installMinutesMax')) {
+        $value = Get-OptionalValue -Object $Estimate -Name $name
+        if ($null -eq $value -or [double]$value -lt 0) { throw "$Context estimate '$name' must be a non-negative number." }
+    }
+    if ([double]$Estimate.downloadMbMax -lt [double]$Estimate.downloadMbMin) { throw "$Context download estimate maximum is less than its minimum." }
+    if ([double]$Estimate.installMinutesMax -lt [double]$Estimate.installMinutesMin) { throw "$Context time estimate maximum is less than its minimum." }
+}
+
 function Convert-InstallOptions {
     param([string]$Override, [string]$PackageId)
     if (-not $Override) { return [string[]]@() }
@@ -62,6 +90,89 @@ function Convert-Estimate {
         installMinutesMin = [double]$Estimate.installMinutesMin
         installMinutesMax = [double]$Estimate.installMinutesMax
     }
+}
+
+function Convert-UbuntuProvider {
+    param($Mapping, [string]$PackageId)
+    $context = "Package '$PackageId' Ubuntu mapping"
+    Assert-OnlyProperties -Object $Mapping -Allowed @(
+        'support', 'reason', 'condition', 'alternativeName',
+        'manager', 'packageId', 'source', 'privilege', 'scope',
+        'architectures', 'installOptions', 'estimate'
+    ) -Context $context
+
+    $support = [string](Get-OptionalValue -Object $Mapping -Name 'support')
+    if (@('native', 'alternative', 'conditional', 'unsupported') -notcontains $support) {
+        throw "$context support must be native, alternative, conditional, or unsupported."
+    }
+    if ($support -eq 'unsupported') {
+        Assert-NonEmptyText -Value (Get-OptionalValue -Object $Mapping -Name 'reason') -Context "$context reason"
+        foreach ($field in @('manager', 'packageId', 'source', 'privilege', 'scope', 'architectures', 'installOptions', 'estimate', 'condition', 'alternativeName')) {
+            if ($Mapping.PSObject.Properties[$field]) { throw "$context marked unsupported must not define provider field '$field'." }
+        }
+        return $null
+    }
+
+    if ($Mapping.PSObject.Properties['reason']) { throw "$context supported mapping must not define a reason." }
+    if ($support -eq 'alternative') {
+        Assert-NonEmptyText -Value (Get-OptionalValue -Object $Mapping -Name 'alternativeName') -Context "$context alternativeName"
+    } elseif ($Mapping.PSObject.Properties['alternativeName']) {
+        throw "$context alternativeName is only valid for alternative support."
+    }
+    if ($support -eq 'conditional') {
+        Assert-NonEmptyText -Value (Get-OptionalValue -Object $Mapping -Name 'condition') -Context "$context condition"
+    } elseif ($Mapping.PSObject.Properties['condition']) {
+        throw "$context condition is only valid for conditional support."
+    }
+
+    $manager = [string](Get-OptionalValue -Object $Mapping -Name 'manager')
+    if (@('apt-get', 'snap', 'flatpak') -notcontains $manager) { throw "$context uses unsupported manager '$manager'." }
+    $providerPackageId = Get-OptionalValue -Object $Mapping -Name 'packageId'
+    Assert-NonEmptyText -Value $providerPackageId -Context "$context packageId"
+    if ([string]$providerPackageId -notmatch '^[A-Za-z0-9][A-Za-z0-9._+:-]*$') { throw "$context packageId contains unsupported characters." }
+
+    $privilege = [string](Get-OptionalValue -Object $Mapping -Name 'privilege')
+    $scope = [string](Get-OptionalValue -Object $Mapping -Name 'scope')
+    $source = Get-OptionalValue -Object $Mapping -Name 'source'
+    if ($manager -in @('apt-get', 'snap')) {
+        if ($source) { throw "$context $manager provider must not define a custom source." }
+        if ($privilege -ne 'elevated' -or $scope -ne 'machine') { throw "$context $manager provider must use elevated machine scope." }
+    } else {
+        Assert-NonEmptyText -Value $source -Context "$context source"
+        if ([string]$source -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') { throw "$context source contains unsupported characters." }
+        if (-not (($privilege -eq 'user' -and $scope -eq 'user') -or ($privilege -eq 'elevated' -and $scope -eq 'machine'))) {
+            throw "$context flatpak provider must use user/user or elevated/machine privilege and scope."
+        }
+    }
+
+    $architecturesProperty = $Mapping.PSObject.Properties['architectures']
+    if (-not $architecturesProperty -or $architecturesProperty.Value -is [string]) { throw "$context architectures must be a typed array." }
+    $architecturesValue = $architecturesProperty.Value
+    $architectures = @($architecturesValue | ForEach-Object { [string]$_ })
+    if ($architectures.Count -eq 0 -or @($architectures | Sort-Object -Unique).Count -ne $architectures.Count) { throw "$context architectures must be a non-empty unique array." }
+    foreach ($architecture in $architectures) {
+        if (@('x86', 'x64', 'arm64') -notcontains $architecture) { throw "$context contains unsupported architecture '$architecture'." }
+    }
+
+    $installOptionsProperty = $Mapping.PSObject.Properties['installOptions']
+    if (-not $installOptionsProperty -or $installOptionsProperty.Value -is [string]) { throw "$context installOptions must be a typed array." }
+    $installOptionsValue = $installOptionsProperty.Value
+    $installOptions = @($installOptionsValue | ForEach-Object { [string]$_ })
+    foreach ($option in $installOptions) { Assert-NonEmptyText -Value $option -Context "$context install option" }
+    Assert-Estimate -Estimate (Get-OptionalValue -Object $Mapping -Name 'estimate') -Context $context
+
+    $provider = [ordered]@{
+        manager = $manager
+        packageId = [string]$providerPackageId
+    }
+    if ($source) { $provider.source = [string]$source }
+    $provider.privilege = $privilege
+    $provider.scope = $scope
+    $provider.architectures = $architectures
+    $provider.detection = [ordered]@{ type = 'manager-native' }
+    $provider.installOptions = $installOptions
+    $provider.estimate = Convert-Estimate -Estimate $Mapping.estimate
+    return [pscustomobject]$provider
 }
 
 function Write-DeterministicJson {
@@ -124,6 +235,13 @@ foreach ($package in $packageItemsV2) {
         estimate = Convert-Estimate -Estimate $estimateV2
     }
 
+    $providers = [ordered]@{ windows = @($provider) }
+    $ubuntu = Get-OptionalValue -Object $package.platforms -Name 'ubuntu'
+    if ($ubuntu) {
+        $ubuntuProvider = Convert-UbuntuProvider -Mapping $ubuntu -PackageId $packageId
+        if ($null -ne $ubuntuProvider) { $providers.ubuntu = @($ubuntuProvider) }
+    }
+
     $packageV3 = [ordered]@{
         id = $packageId
         name = [string]$package.name
@@ -134,7 +252,7 @@ foreach ($package in $packageItemsV2) {
         dependencies = @(Get-StringArray -Object $package -Name 'requires')
         conflicts = @(Get-StringArray -Object $package -Name 'conflictsWith')
         configurationIntents = @()
-        providers = [ordered]@{ windows = @($provider) }
+        providers = $providers
     }
     $configurationIntent = [string](Get-OptionalValue -Object $package -Name 'configure')
     if ($configurationIntent) { $packageV3.configurationIntents = @($configurationIntent) }

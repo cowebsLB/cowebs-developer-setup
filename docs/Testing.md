@@ -11,13 +11,14 @@ The architecture suite requires the Go version declared in `go.mod` (currently 1
 The suite validates:
 
 - JSON Schema draft and stable-ID contracts for package catalog v3, profile catalog v3, execution plans, events, and release manifests;
-- deterministic v2-to-v3 compilation with exact preservation of all 86 packages, 34 packs, nine profiles, mappings, dependencies, conflicts, configuration intents, options, and estimates;
-- fail-closed compiler behavior for unknown references and ambiguous quoted legacy overrides;
-- strict Go catalog decoding, reference validation, target validation, dependency ordering, conflict rejection, deterministic plan IDs, and configuration barriers;
+- deterministic v2-to-v3 compilation with exact preservation of all 86 packages, 34 packs, nine profiles, Windows mappings, dependencies, conflicts, configuration intents, options, and estimates plus ten reviewed Ubuntu core providers;
+- fail-closed compiler behavior for unknown references, ambiguous quoted legacy overrides, arbitrary Ubuntu fields, and stringly typed Ubuntu installer options;
+- strict Go catalog decoding, reference validation, target validation, dependency ordering, conflict rejection, deterministic plan IDs, configuration barriers, and complete ordered unsupported-package diagnostics;
 - independent PowerShell-versus-Go parity for all nine default plans, all nine essentials-only plans, explicit multi-pack composition, exact Winget order, selected packs, estimates, and expected conflict failure;
 - canonical-plan regeneration and rejection of digest, provider, option, configuration, and unknown-field tampering before broker execution;
 - native process-start failure handling, already-installed package detection and paired-install skipping, and real-run elevation guard wiring;
 - Ubuntu/Fedora adapter manager routing, native dpkg/DNF/Snap/Flatpak detection, exact dpkg installed-state checks, typed install arguments, Flatpak user/machine scope, dry-run isolation, and positional-token rejection;
+- a bounded ten-package Ubuntu schema-v2 compile and deterministic CLI plan plus representative planner-to-adapter detection and dry-run rendering, without installing software;
 - durable journal append/flush, state replacement, strict event decoding, monotonic sequence continuation, original-session resume, and plan/catalog mismatch rejection;
 - byte-identical Go JSON output for identical catalogs and inputs;
 - JSON syntax and schema versions;

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cowebsLB/cowebs-developer-setup/internal/catalog"
 	"github.com/cowebsLB/cowebs-developer-setup/internal/planner"
 )
 
@@ -136,6 +137,56 @@ func TestExecuteInstallDryRunDoesNotInvokeRunner(t *testing.T) {
 	}
 	if output != "PLANNED: apt-get install --yes --no-install-recommends git" {
 		t.Fatalf("unexpected dry-run output %q", output)
+	}
+}
+
+func TestUbuntuBoundedPlanRoutesThroughDetectionAndDryRun(t *testing.T) {
+	packages := []catalog.Package{
+		{ID: "git", Providers: map[string][]catalog.Provider{"ubuntu": {{Manager: "apt-get", PackageID: "git", Privilege: "elevated", Scope: "machine", Architectures: []string{"x64"}, Detection: catalog.Detection{Type: "manager-native"}, Estimate: catalog.Estimate{DownloadMBMin: 4, DownloadMBMax: 40, InstallMinutesMin: 0.2, InstallMinutesMax: 2}}}}},
+		{ID: "vscode", Providers: map[string][]catalog.Provider{"ubuntu": {{Manager: "snap", PackageID: "code", Privilege: "elevated", Scope: "machine", Architectures: []string{"x64"}, Detection: catalog.Detection{Type: "manager-native"}, InstallOptions: []string{"--classic"}, Estimate: catalog.Estimate{DownloadMBMin: 100, DownloadMBMax: 250, InstallMinutesMin: 1, InstallMinutesMax: 5}}}}},
+	}
+	profile := catalog.Profile{ID: "ubuntu-core-smoke", Name: "Ubuntu core smoke"}
+	catalogs := &catalog.Catalogs{
+		Packages:    catalog.PackageCatalog{SchemaVersion: 3, Packages: packages},
+		Profiles:    catalog.ProfileCatalog{SchemaVersion: 3, CorePackageIDs: []string{"git", "vscode"}, Profiles: []catalog.Profile{profile}},
+		PackageByID: map[string]catalog.Package{"git": packages[0], "vscode": packages[1]},
+		PackByID:    map[string]catalog.Pack{}, ProfileByID: map[string]catalog.Profile{profile.ID: profile},
+		CatalogSHA256: strings.Repeat("b", 64),
+	}
+	plan, err := planner.Build(catalogs, planner.Input{Platform: "ubuntu", Architecture: "x64", ProfileID: profile.ID, EssentialsOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(plan.Operations); got != 4 {
+		t.Fatalf("operation count = %d, want 4", got)
+	}
+
+	adapter, _ := NewAdapter(PlatformUbuntu)
+	runner := &mockRunner{returnCode: 0, returnOut: "install ok installed"}
+	adapter.Runner = runner
+	dryRuns := []string{}
+	for _, op := range plan.Operations {
+		switch op.Kind {
+		case "detect":
+			installed, detectErr := adapter.Detect(op)
+			if detectErr != nil || !installed {
+				t.Fatalf("detect %s: installed=%v err=%v", op.ID, installed, detectErr)
+			}
+		case "install":
+			callsBefore := runner.calls
+			code, output, installErr := adapter.ExecuteInstall(op, true)
+			if installErr != nil || code != 0 || runner.calls != callsBefore {
+				t.Fatalf("dry-run %s: code=%d calls=%d/%d err=%v", op.ID, code, runner.calls, callsBefore, installErr)
+			}
+			dryRuns = append(dryRuns, output)
+		}
+	}
+	wantDryRuns := []string{
+		"PLANNED: apt-get install --yes --no-install-recommends git",
+		"PLANNED: snap install code --classic",
+	}
+	if !reflect.DeepEqual(dryRuns, wantDryRuns) {
+		t.Fatalf("dry-run rendering = %v, want %v", dryRuns, wantDryRuns)
 	}
 }
 

@@ -19,6 +19,19 @@ type Input struct {
 	EssentialsOnly  bool
 }
 
+// UnsupportedPackagesError reports every selected logical package that lacks
+// a provider for the requested target. PackageIDs retain deterministic plan
+// order so callers can render stable diagnostics or structured output.
+type UnsupportedPackagesError struct {
+	Platform     string
+	Architecture string
+	PackageIDs   []string
+}
+
+func (e *UnsupportedPackagesError) Error() string {
+	return fmt.Sprintf("unsupported packages for %s/%s: %s", e.Platform, e.Architecture, strings.Join(e.PackageIDs, ", "))
+}
+
 // ValidateCanonical verifies that a plan is exactly reproducible from the
 // verified catalogs. The execution-plan v1 contract does not record whether
 // recommended packs were selected implicitly, so both valid planner modes are
@@ -171,16 +184,24 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 
 	providers := make(map[string]catalog.Provider, len(packageIDs))
 	estimate := catalog.Estimate{}
+	unsupportedPackageIDs := make([]string, 0)
 	for _, id := range packageIDs {
 		provider, err := selectProvider(c.PackageByID[id], input.Platform, input.Architecture)
 		if err != nil {
-			return nil, err
+			unsupportedPackageIDs = append(unsupportedPackageIDs, id)
+			continue
 		}
 		providers[id] = provider
 		estimate.DownloadMBMin += provider.Estimate.DownloadMBMin
 		estimate.DownloadMBMax += provider.Estimate.DownloadMBMax
 		estimate.InstallMinutesMin += provider.Estimate.InstallMinutesMin
 		estimate.InstallMinutesMax += provider.Estimate.InstallMinutesMax
+	}
+	if len(unsupportedPackageIDs) > 0 {
+		return nil, &UnsupportedPackagesError{
+			Platform: input.Platform, Architecture: input.Architecture,
+			PackageIDs: unsupportedPackageIDs,
+		}
 	}
 
 	operations := make([]Operation, 0, len(packageIDs)*2)

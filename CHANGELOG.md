@@ -6,17 +6,22 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
+- Extended the deterministic schema-v2 compatibility input and compiler with reviewed Ubuntu support classifications, typed APT/Snap provider mappings, architecture ranges, options, privilege/scope, and conservative estimates for the bounded core slice.
+- Changed planner failure behavior to report every selected package lacking a target provider in deterministic plan order.
 - Advanced development builds to `6.3.0-dev` and protected the published v6.2.0 identity from rebuilds on newer source.
 - Expanded the Linux roadmap into staged Ubuntu, Fedora, privilege-orchestration, immutable-bootstrap, disposable-environment validation, and release-readiness gates.
 - Added the planned public `cowebs install dev-setup` command family, shared CLI/GUI controller boundary, native packaging targets, compatibility requirements, and end-to-end product-surface gates to the roadmap and API documentation.
 
 ### Added
 
+- Added ten reviewed Ubuntu core providers, an explicit GNOME Terminal alternative, conditional Snap mappings for VS Code and PowerShell, and a fail-closed GitHub CLI classification pending typed signed-repository prerequisites.
+- Added bounded Ubuntu compilation/planning and planner-to-adapter detection/dry-run tests with byte-deterministic JSON assertions.
 - Added a source-only typed Linux provider adapter for Ubuntu and Fedora with direct `apt-get`, `dnf`, `snap`, and `flatpak` detection and installation commands.
 - Added Linux adapter tests for manager/platform compatibility, user and machine Flatpak scopes, dry-run isolation, process-start failures, native inventory queries, and unsafe positional-token rejection.
 
 ### Security
 
+- Rejected unknown fields, stringly typed installer options, invalid provider contracts, and arbitrary shell data in Ubuntu compatibility mappings; unsupported packages never compile into executable providers.
 - Required explicit Linux privilege, scope, and Flatpak remote contracts; rejected unsupported cross-distribution managers, custom APT/DNF/Snap sources, option-shaped identifiers/remotes, and malformed or control-character arguments before process execution.
 - Made APT detection require the exact installed dpkg status instead of treating residual configuration state as an installed package.
 
