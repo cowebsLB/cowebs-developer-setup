@@ -74,7 +74,7 @@ Compile the production schema-v2 manifests into deterministic migration artifact
 ./scripts/convert-catalog-v2-to-v3.ps1 -OutputDirectory .tmp/catalog-v3
 ```
 
-The compiler writes `package-catalog.v3.json` and `profile-catalog.v3.json`. It validates known references, symmetric conflicts, profile inheritance, current Winget mappings, safely representable installer options, and typed Ubuntu provider/prerequisite contracts. Unsupported classifications emit no provider. The generated files are development artifacts and are not consumed by the v6.2 runtime.
+The compiler writes `package-catalog.v3.json` and `profile-catalog.v3.json`. It validates known references, symmetric conflicts, profile inheritance, current Winget mappings, safely representable installer options, and typed Ubuntu provider/prerequisite contracts. The current Ubuntu input contains 26 reviewed classifications; 16 emit executable providers and ten unsupported results intentionally emit no provider. The generated files are development artifacts and are not consumed by the v6.2 runtime.
 
 ## Architecture modernization CLI (`cowebs-setup`)
 

@@ -32,7 +32,7 @@
 |---|---|---|
 | Windows | Implemented | Winget |
 | macOS | Planned | Homebrew |
-| Ubuntu | Full x64 core planning (source-only; not installable) | Eleven reviewed APT/Snap providers with typed GitHub repository prerequisite |
+| Ubuntu | Full x64 core plus bounded runtime planning (source-only; not installable) | Twenty-six classifications: sixteen executable providers and ten explicit unsupported results |
 | Fedora | Adapter foundation (source-only) | DNF, Snap, or Flatpak where appropriate |
 
 ## Development architecture modernization (source-only in v6.2.0)
@@ -41,9 +41,9 @@
 - Typed execution-plan, event, and release-manifest contracts
 - Deterministic schema-v2 to schema-v3 compatibility compiler
 - Typed Ubuntu compatibility input for native, alternative, conditional, and unsupported classifications
-- Eleven reviewed Ubuntu core providers with complete fail-closed unsupported-package diagnostics
+- Twenty-six reviewed Ubuntu classifications covering the core and language/runtime/container slice, with sixteen executable providers and ten explicit unsupported results
 - Digest-pinned typed GitHub CLI APT repository planning with one de-duplicated index refresh
-- Full deterministic Ubuntu x64 core plan coverage plus native detection and dry-run rendering
+- Full deterministic Ubuntu x64 core coverage plus bounded Node.js, OpenJDK, .NET, Go, and Rustup planning and ordered unsupported-runtime diagnostics
 - Accepted ADRs for the Go controller, least-privilege broker, provider adapters, and resumable event journal
 - Strict dependency-free Go catalog loader and deterministic shadow planner
 - Windows provider adapter (`internal/adapter/windows`) with native Winget detection and direct binary execution

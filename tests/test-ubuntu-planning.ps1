@@ -11,6 +11,13 @@ function Assert-True {
     if (-not $Condition) { throw $Message }
 }
 
+function Write-Utf8Json {
+    param($Value, [string]$Path)
+    $json = $Value | ConvertTo-Json -Depth 20
+    $json = $json -replace "`r?`n", "`n"
+    [IO.File]::WriteAllText($Path, ($json + "`n"), [Text.UTF8Encoding]::new($false))
+}
+
 function Resolve-GoExecutable {
     if ($env:COWEBS_GO_EXE) {
         if (-not (Test-Path -LiteralPath $env:COWEBS_GO_EXE)) { throw "COWEBS_GO_EXE does not exist: $env:COWEBS_GO_EXE" }
@@ -85,10 +92,55 @@ try {
         '--profile', 'game', '--platform', 'ubuntu', '--architecture', 'arm64',
         '--essentials-only', '--json'
     )
-    Assert-True ($unsupported.ExitCode -eq 1) 'Ubuntu arm64 must fail closed while the reviewed Snap mappings remain x64-only.'
+    Assert-True ($unsupported.ExitCode -eq 1) 'Ubuntu arm64 must fail closed while the reviewed VS Code and PowerShell Snap mappings remain x64-only.'
     Assert-True ($unsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/arm64: vscode, powershell') 'Ubuntu arm64 unsupported-package diagnostic changed or omitted intent.'
 
-    Write-Host 'PASS: full Ubuntu core compilation, typed repository planning, deterministic JSON, and fail-closed architecture diagnostics.' -ForegroundColor Green
+    $runtimeProfiles = Get-Content -LiteralPath (Join-Path $compiled 'profile-catalog.v3.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-runtime-supported'
+        name = 'Ubuntu supported runtime slice'
+        extends = @()
+        packageIds = @('node', 'openjdk', 'dotnet-sdk', 'go', 'rustup')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-runtime-unsupported'
+        name = 'Ubuntu unsupported runtime diagnostics'
+        extends = @()
+        packageIds = @('python', 'ruff', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
+    $runtimeProfilesPath = Join-Path $tempRoot 'runtime-profile-catalog.v3.json'
+    Write-Utf8Json -Value $runtimeProfiles -Path $runtimeProfilesPath
+
+    $runtimeArguments = @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-runtime-supported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    $runtimeFirst = Invoke-Native -FilePath $cliPath -Arguments $runtimeArguments
+    $runtimeSecond = Invoke-Native -FilePath $cliPath -Arguments $runtimeArguments
+    Assert-True ($runtimeFirst.ExitCode -eq 0 -and $runtimeSecond.ExitCode -eq 0) "Ubuntu runtime slice failed: $($runtimeFirst.Stderr)$($runtimeSecond.Stderr)"
+    Assert-True ($runtimeFirst.Stdout -ceq $runtimeSecond.Stdout) 'Ubuntu runtime slice plan JSON is not byte-deterministic.'
+    $runtimePlan = $runtimeFirst.Stdout | ConvertFrom-Json
+    $runtimeInstalls = @($runtimePlan.operations | Where-Object { $_.kind -eq 'install' })
+    Assert-True ($runtimeInstalls.Count -eq 16) 'Ubuntu runtime slice must contain the 11 core installs plus five reviewed runtime installs.'
+    Assert-True (($runtimeInstalls[-5..-1].logicalPackageId -join ',') -eq 'node,openjdk,dotnet-sdk,go,rustup') 'Ubuntu runtime install order changed.'
+    $goInstall = $runtimeInstalls | Where-Object { $_.logicalPackageId -eq 'go' } | Select-Object -First 1
+    Assert-True ($goInstall.manager -eq 'snap' -and ($goInstall.installOptions -join ',') -eq '--classic') 'Go must use the Canonical classic Snap provider.'
+    Assert-True (@($runtimePlan.operations | Where-Object { $_.kind -eq 'refresh-package-index' }).Count -eq 1) 'The expanded runtime plan must still refresh APT metadata exactly once.'
+
+    $runtimeUnsupported = Invoke-Native -FilePath $cliPath -Arguments @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-runtime-unsupported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    Assert-True ($runtimeUnsupported.ExitCode -eq 1) 'The unsupported Ubuntu runtime slice must fail closed.'
+    Assert-True ($runtimeUnsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: python, ruff, php, bun, deno, yarn, pnpm, docker') 'Ubuntu runtime unsupported-package diagnostics changed or omitted selected intent.'
+
+    Write-Host 'PASS: Ubuntu core and runtime-slice compilation, typed repository planning, deterministic JSON, and fail-closed diagnostics.' -ForegroundColor Green
 } finally {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }
 }

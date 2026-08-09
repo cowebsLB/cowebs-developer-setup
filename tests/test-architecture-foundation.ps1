@@ -122,8 +122,8 @@ try {
     }
 
     $ubuntuMappings = @($packagesV2.packages | Where-Object { $null -ne (Get-OptionalValue $_.platforms 'ubuntu') })
-    Assert-True ($ubuntuMappings.Count -eq 11) 'The first Ubuntu compatibility slice must classify all 11 core packages.'
-    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 0) 'The typed prerequisite slice must resolve every Ubuntu core mapping.'
+    Assert-True ($ubuntuMappings.Count -eq 26) 'The Ubuntu compatibility catalog must classify the 11 core packages and 15 language/runtime/container packages.'
+    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 10) 'The runtime slice must preserve all ten reviewed unsupported results.'
     Assert-True (@($packagesV3.prerequisites).Count -eq 1) 'The compiler must emit exactly one bounded Ubuntu prerequisite.'
     $githubPrerequisite = @($packagesV3.prerequisites)[0]
     Assert-True ($githubPrerequisite.id -eq 'github-cli-apt' -and $githubPrerequisite.type -eq 'apt-repository') 'GitHub CLI prerequisite identity changed.'
@@ -135,15 +135,27 @@ try {
         'windows-terminal' = @('apt-get', 'gnome-terminal'); 'seven-zip' = @('apt-get', '7zip')
         'jq' = @('apt-get', 'jq'); 'ripgrep' = @('apt-get', 'ripgrep'); 'fd' = @('apt-get', 'fd-find')
         'git-lfs' = @('apt-get', 'git-lfs'); 'openssl' = @('apt-get', 'openssl')
+        'node' = @('apt-get', 'nodejs'); 'openjdk' = @('apt-get', 'openjdk-21-jdk')
+        'dotnet-sdk' = @('apt-get', 'dotnet-sdk-10.0'); 'go' = @('snap', 'go'); 'rustup' = @('apt-get', 'rustup')
     }
     foreach ($entry in $expectedUbuntuProviders.GetEnumerator()) {
         $compiled = $packagesV3.packages | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
         $provider = @($compiled.providers.ubuntu)[0]
         Assert-True ($provider.manager -eq $entry.Value[0] -and $provider.packageId -eq $entry.Value[1]) "Package '$($entry.Key)' has an unexpected Ubuntu provider."
         Assert-True ($provider.privilege -eq 'elevated' -and $provider.scope -eq 'machine') "Package '$($entry.Key)' Ubuntu provider must use elevated machine scope."
-        $expectedArchitectures = if ($provider.manager -eq 'snap') { 'x64' } else { 'x64,arm64' }
+        $expectedArchitectures = if ($entry.Key -in @('vscode', 'powershell')) { 'x64' } else { 'x64,arm64' }
         Assert-True (($provider.architectures -join ',') -eq $expectedArchitectures) "Package '$($entry.Key)' Ubuntu architectures changed."
         Assert-True ($provider.detection.type -eq 'manager-native') "Package '$($entry.Key)' Ubuntu detection must be manager-native."
+    }
+    $goCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'go' } | Select-Object -First 1
+    Assert-True ((@($goCompiled.providers.ubuntu)[0].installOptions -join ',') -eq '--classic') 'Go must retain its typed classic Snap option.'
+    $expectedUnsupportedRuntimeIds = @('python', 'uv', 'ruff', 'miniconda', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker')
+    foreach ($packageId in $expectedUnsupportedRuntimeIds) {
+        $sourcePackage = $packagesV2.packages | Where-Object { $_.key -eq $packageId } | Select-Object -First 1
+        Assert-True ($sourcePackage.platforms.ubuntu.support -eq 'unsupported') "Package '$packageId' must remain explicitly unsupported in the Ubuntu 24.04 runtime slice."
+        Assert-True (-not [string]::IsNullOrWhiteSpace([string]$sourcePackage.platforms.ubuntu.reason)) "Package '$packageId' must document why it is unsupported."
+        $compiled = $packagesV3.packages | Where-Object { $_.id -eq $packageId } | Select-Object -First 1
+        Assert-True ($null -eq $compiled.providers.PSObject.Properties['ubuntu']) "Package '$packageId' must not gain an executable Ubuntu provider."
     }
 
     Assert-True (($profilesV3.corePackageIds -join ',') -eq ($profilesV2.corePackages -join ',')) 'Core package order changed during compilation.'

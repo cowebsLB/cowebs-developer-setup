@@ -6,6 +6,8 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
+- Classified the next 15 Ubuntu 24.04 language, runtime, package-manager, and container tools: five reviewed executable providers and ten explicit unsupported results that preserve version and installation-method intent.
+- Added native Ubuntu providers for Node.js, OpenJDK 21, .NET SDK 10, and Rustup plus a conditional Canonical classic Snap provider for Go on x64 and arm64.
 - Promoted GitHub CLI from explicit Ubuntu unsupported status to a conditional official APT provider backed by a typed, SHA-256-pinned signed-repository prerequisite.
 - Extended package catalog v3 and execution plan v1 with typed repository-key, APT source, and de-duplicated package-index refresh contracts while keeping real Linux prerequisite mutation disabled.
 - Extended the deterministic schema-v2 compatibility input and compiler with reviewed Ubuntu support classifications, typed APT/Snap provider mappings, architecture ranges, options, privilege/scope, and conservative estimates for the bounded core slice.
@@ -16,6 +18,7 @@ All notable changes follow semantic versioning.
 
 ### Added
 
+- Added deterministic Ubuntu runtime-slice planning coverage for the five executable providers and complete ordered fail-closed diagnostics for selected script-, artifact-, version-, and Corepack-dependent tools.
 - Added a deterministic full 11-package Ubuntu x64 core plan and safe Linux prerequisite dry-run rendering for the official GitHub CLI repository.
 - Added reviewed Ubuntu core classifications, an explicit GNOME Terminal alternative, and conditional Snap mappings for VS Code and PowerShell.
 - Added bounded Ubuntu compilation/planning and planner-to-adapter detection/dry-run tests with byte-deterministic JSON assertions.
@@ -24,6 +27,7 @@ All notable changes follow semantic versioning.
 
 ### Security
 
+- Refused to substitute Ubuntu 24.04's Python 3.12 or PHP 8.3 for the catalog's requested Python 3.14 and PHP 8.4, and refused network-script, downloaded-DEB, and user-scoped Corepack execution until typed verified handlers exist.
 - Pinned the GitHub CLI keyring by its official SHA-256, constrained repository URLs to credential-free HTTPS, constrained target files to APT-owned directories, and rejected real prerequisite execution until an elevated atomic implementation is reviewed.
 - Rejected unknown fields, stringly typed installer options, invalid provider contracts, and arbitrary shell data in Ubuntu compatibility mappings; unsupported packages never compile into executable providers.
 - Required explicit Linux privilege, scope, and Flatpak remote contracts; rejected unsupported cross-distribution managers, custom APT/DNF/Snap sources, option-shaped identifiers/remotes, and malformed or control-character arguments before process execution.
