@@ -7,6 +7,7 @@ All notable changes follow semantic versioning.
 ### Changed
 
 - Advanced development builds to `6.3.0-dev` and protected the published v6.2.0 identity from rebuilds on newer source.
+- Expanded the Linux roadmap into staged Ubuntu, Fedora, privilege-orchestration, immutable-bootstrap, disposable-environment validation, and release-readiness gates.
 
 ### Added
 
