@@ -83,17 +83,26 @@ type Plan struct {
 }
 
 type Operation struct {
-	ID                  string   `json:"id"`
-	Kind                string   `json:"kind"`
-	LogicalPackageID    string   `json:"logicalPackageId"`
-	Manager             string   `json:"manager,omitempty"`
-	PackageID           string   `json:"packageId,omitempty"`
-	Source              string   `json:"source,omitempty"`
-	Privilege           string   `json:"privilege"`
-	Scope               string   `json:"scope,omitempty"`
-	InstallOptions      []string `json:"installOptions,omitempty"`
-	ConfigurationIntent string   `json:"configurationIntent,omitempty"`
-	DependsOn           []string `json:"dependsOn"`
+	ID                     string   `json:"id"`
+	Kind                   string   `json:"kind"`
+	LogicalPackageID       string   `json:"logicalPackageId"`
+	Manager                string   `json:"manager,omitempty"`
+	PackageID              string   `json:"packageId,omitempty"`
+	Source                 string   `json:"source,omitempty"`
+	Privilege              string   `json:"privilege"`
+	Scope                  string   `json:"scope,omitempty"`
+	InstallOptions         []string `json:"installOptions,omitempty"`
+	ConfigurationIntent    string   `json:"configurationIntent,omitempty"`
+	PrerequisiteID         string   `json:"prerequisiteId,omitempty"`
+	URL                    string   `json:"url,omitempty"`
+	SHA256                 string   `json:"sha256,omitempty"`
+	TargetPath             string   `json:"targetPath,omitempty"`
+	RepositoryBaseURL      string   `json:"repositoryBaseUrl,omitempty"`
+	RepositorySuite        string   `json:"repositorySuite,omitempty"`
+	RepositoryComponents   []string `json:"repositoryComponents,omitempty"`
+	RepositoryArchitecture string   `json:"repositoryArchitecture,omitempty"`
+	KeyringPath            string   `json:"keyringPath,omitempty"`
+	DependsOn              []string `json:"dependsOn"`
 }
 
 type metadata struct {
@@ -183,6 +192,9 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 	}
 
 	providers := make(map[string]catalog.Provider, len(packageIDs))
+	selectedPrerequisites := make([]catalog.Prerequisite, 0)
+	seenPrerequisites := map[string]bool{}
+	prerequisiteOwners := map[string]string{}
 	estimate := catalog.Estimate{}
 	unsupportedPackageIDs := make([]string, 0)
 	for _, id := range packageIDs {
@@ -192,6 +204,13 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 			continue
 		}
 		providers[id] = provider
+		for _, prerequisiteID := range provider.PrerequisiteIDs {
+			if !seenPrerequisites[prerequisiteID] {
+				seenPrerequisites[prerequisiteID] = true
+				prerequisiteOwners[prerequisiteID] = id
+				selectedPrerequisites = append(selectedPrerequisites, c.PrerequisiteByID[prerequisiteID])
+			}
+		}
 		estimate.DownloadMBMin += provider.Estimate.DownloadMBMin
 		estimate.DownloadMBMax += provider.Estimate.DownloadMBMax
 		estimate.InstallMinutesMin += provider.Estimate.InstallMinutesMin
@@ -204,7 +223,37 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 		}
 	}
 
-	operations := make([]Operation, 0, len(packageIDs)*2)
+	operations := make([]Operation, 0, len(packageIDs)*2+len(selectedPrerequisites)*2+1)
+	repositoryOperationIDs := make([]string, 0, len(selectedPrerequisites))
+	for _, prerequisite := range selectedPrerequisites {
+		owner := prerequisiteOwners[prerequisite.ID]
+		keyID := "prerequisite:" + prerequisite.ID + ":keyring"
+		repositoryID := "prerequisite:" + prerequisite.ID + ":repository"
+		operations = append(operations,
+			Operation{
+				ID: keyID, Kind: "ensure-repository-key", LogicalPackageID: owner,
+				PrerequisiteID: prerequisite.ID, URL: prerequisite.KeyringURL,
+				SHA256: prerequisite.KeyringSHA256, TargetPath: prerequisite.KeyringPath,
+				Privilege: "elevated", Scope: "machine", DependsOn: []string{},
+			},
+			Operation{
+				ID: repositoryID, Kind: "ensure-apt-repository", LogicalPackageID: owner,
+				PrerequisiteID: prerequisite.ID, RepositoryBaseURL: prerequisite.RepositoryBaseURL,
+				RepositorySuite: prerequisite.RepositorySuite, RepositoryComponents: append([]string{}, prerequisite.RepositoryComponents...),
+				RepositoryArchitecture: aptArchitecture(input.Architecture), KeyringPath: prerequisite.KeyringPath,
+				TargetPath: prerequisite.SourcesListPath, Privilege: "elevated", Scope: "machine", DependsOn: []string{keyID},
+			},
+		)
+		repositoryOperationIDs = append(repositoryOperationIDs, repositoryID)
+	}
+	refreshID := ""
+	if len(repositoryOperationIDs) > 0 {
+		refreshID = "prerequisite:apt-get:refresh"
+		operations = append(operations, Operation{
+			ID: refreshID, Kind: "refresh-package-index", LogicalPackageID: prerequisiteOwners[selectedPrerequisites[0].ID],
+			Manager: "apt-get", Privilege: "elevated", Scope: "machine", DependsOn: append([]string{}, repositoryOperationIDs...),
+		})
+	}
 	installIDs := make([]string, 0, len(packageIDs))
 	for _, id := range packageIDs {
 		provider := providers[id]
@@ -220,6 +269,9 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 			Privilege: provider.Privilege, Scope: provider.Scope, DependsOn: dependencyInstalls,
 		})
 		installDependsOn := append(append([]string{}, dependencyInstalls...), detectID)
+		if len(provider.PrerequisiteIDs) > 0 && refreshID != "" {
+			installDependsOn = append(installDependsOn, refreshID)
+		}
 		operations = append(operations, Operation{
 			ID: installID, Kind: "install", LogicalPackageID: id,
 			Manager: provider.Manager, PackageID: provider.PackageID, Source: provider.Source,
@@ -251,6 +303,17 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 	}
 	plan.PlanID = deterministicPlanID(c.CatalogSHA256, input, selectedPacks)
 	return plan, nil
+}
+
+func aptArchitecture(architecture string) string {
+	switch architecture {
+	case "x86":
+		return "i386"
+	case "x64":
+		return "amd64"
+	default:
+		return architecture
+	}
 }
 
 func resolveProfile(c *catalog.Catalogs, id string) (metadata, error) {

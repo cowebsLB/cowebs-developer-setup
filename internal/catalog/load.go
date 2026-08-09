@@ -7,7 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"regexp"
+	"strings"
 )
 
 func Load(packagePath, profilePath string) (*Catalogs, error) {
@@ -30,11 +33,12 @@ func Load(packagePath, profilePath string) (*Catalogs, error) {
 	}
 
 	catalogs := &Catalogs{
-		Packages:    packages,
-		Profiles:    profiles,
-		PackageByID: make(map[string]Package, len(packages.Packages)),
-		PackByID:    make(map[string]Pack, len(profiles.Packs)),
-		ProfileByID: make(map[string]Profile, len(profiles.Profiles)),
+		Packages:         packages,
+		Profiles:         profiles,
+		PrerequisiteByID: make(map[string]Prerequisite, len(packages.Prerequisites)),
+		PackageByID:      make(map[string]Package, len(packages.Packages)),
+		PackByID:         make(map[string]Pack, len(profiles.Packs)),
+		ProfileByID:      make(map[string]Profile, len(profiles.Profiles)),
 	}
 	if err := catalogs.validate(); err != nil {
 		return nil, err
@@ -68,6 +72,18 @@ func (c *Catalogs) validate() error {
 	if c.Packages.SchemaVersion != 3 || c.Profiles.SchemaVersion != 3 {
 		return fmt.Errorf("schema version 3 catalogs are required")
 	}
+	if c.Packages.Prerequisites == nil {
+		return fmt.Errorf("package catalog prerequisites array is required")
+	}
+	for _, prerequisite := range c.Packages.Prerequisites {
+		if err := validatePrerequisite(prerequisite); err != nil {
+			return err
+		}
+		if _, exists := c.PrerequisiteByID[prerequisite.ID]; exists {
+			return fmt.Errorf("duplicate prerequisite id %q", prerequisite.ID)
+		}
+		c.PrerequisiteByID[prerequisite.ID] = prerequisite
+	}
 	for _, pkg := range c.Packages.Packages {
 		if pkg.ID == "" {
 			return fmt.Errorf("package catalog contains an empty id")
@@ -91,6 +107,20 @@ func (c *Catalogs) validate() error {
 				}
 				if err := validateEstimate(pkg.ID, provider.Estimate); err != nil {
 					return err
+				}
+				for _, prerequisiteID := range provider.PrerequisiteIDs {
+					prerequisite, exists := c.PrerequisiteByID[prerequisiteID]
+					if !exists {
+						return fmt.Errorf("package %q provider for %s references unknown prerequisite %q", pkg.ID, platform, prerequisiteID)
+					}
+					if prerequisite.Platform != platform {
+						return fmt.Errorf("package %q provider for %s references %s prerequisite %q", pkg.ID, platform, prerequisite.Platform, prerequisiteID)
+					}
+					for _, architecture := range provider.Architectures {
+						if !contains(prerequisite.Architectures, architecture) {
+							return fmt.Errorf("package %q provider architecture %q is not supported by prerequisite %q", pkg.ID, architecture, prerequisiteID)
+						}
+					}
 				}
 			}
 		}
@@ -151,6 +181,80 @@ func (c *Catalogs) validate() error {
 		}
 	}
 	return nil
+}
+
+var (
+	logicalIDPattern      = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+	aptKeyringPathPattern = regexp.MustCompile(`^/etc/apt/keyrings/[A-Za-z0-9._-]+$`)
+	aptSourcesPathPattern = regexp.MustCompile(`^/etc/apt/sources.list.d/[A-Za-z0-9._-]+\.list$`)
+	aptTokenPattern       = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+	sha256Pattern         = regexp.MustCompile(`^[a-f0-9]{64}$`)
+)
+
+func validatePrerequisite(prerequisite Prerequisite) error {
+	if !logicalIDPattern.MatchString(prerequisite.ID) {
+		return fmt.Errorf("prerequisite has invalid id %q", prerequisite.ID)
+	}
+	if prerequisite.Platform != "ubuntu" || prerequisite.Type != "apt-repository" {
+		return fmt.Errorf("prerequisite %q has unsupported platform/type %q/%q", prerequisite.ID, prerequisite.Platform, prerequisite.Type)
+	}
+	if len(prerequisite.Architectures) == 0 || hasDuplicate(prerequisite.Architectures) {
+		return fmt.Errorf("prerequisite %q architectures must be non-empty and unique", prerequisite.ID)
+	}
+	for _, architecture := range prerequisite.Architectures {
+		if !contains([]string{"x86", "x64", "arm64"}, architecture) {
+			return fmt.Errorf("prerequisite %q has unsupported architecture %q", prerequisite.ID, architecture)
+		}
+	}
+	if err := validateHTTPSURL("keyring URL", prerequisite.ID, prerequisite.KeyringURL); err != nil {
+		return err
+	}
+	if !sha256Pattern.MatchString(prerequisite.KeyringSHA256) {
+		return fmt.Errorf("prerequisite %q has invalid keyring SHA-256", prerequisite.ID)
+	}
+	if !aptKeyringPathPattern.MatchString(prerequisite.KeyringPath) {
+		return fmt.Errorf("prerequisite %q has unsafe keyring path", prerequisite.ID)
+	}
+	if err := validateHTTPSURL("repository base URL", prerequisite.ID, prerequisite.RepositoryBaseURL); err != nil {
+		return err
+	}
+	if !aptTokenPattern.MatchString(prerequisite.RepositorySuite) {
+		return fmt.Errorf("prerequisite %q has invalid repository suite", prerequisite.ID)
+	}
+	if len(prerequisite.RepositoryComponents) == 0 || hasDuplicate(prerequisite.RepositoryComponents) {
+		return fmt.Errorf("prerequisite %q repository components must be non-empty and unique", prerequisite.ID)
+	}
+	for _, component := range prerequisite.RepositoryComponents {
+		if !aptTokenPattern.MatchString(component) {
+			return fmt.Errorf("prerequisite %q has invalid repository component %q", prerequisite.ID, component)
+		}
+	}
+	if !aptSourcesPathPattern.MatchString(prerequisite.SourcesListPath) {
+		return fmt.Errorf("prerequisite %q has unsafe sources-list path", prerequisite.ID)
+	}
+	return nil
+}
+
+func validateHTTPSURL(name, prerequisiteID, value string) error {
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil || !strings.HasPrefix(value, "https://") || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return fmt.Errorf("prerequisite %q has invalid %s", prerequisiteID, name)
+	}
+	if strings.ContainsAny(value, "\r\n\x00") {
+		return fmt.Errorf("prerequisite %q %s contains a control character", prerequisiteID, name)
+	}
+	return nil
+}
+
+func hasDuplicate(values []string) bool {
+	seen := make(map[string]bool, len(values))
+	for _, value := range values {
+		if seen[value] {
+			return true
+		}
+		seen[value] = true
+	}
+	return false
 }
 
 func validateEstimate(packageID string, estimate Estimate) error {

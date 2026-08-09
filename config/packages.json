@@ -18,9 +18,23 @@
       "blender": { "downloadMbMin": 250, "downloadMbMax": 450, "installMinutesMin": 2, "installMinutesMax": 6 }
     }
   },
+  "ubuntuPrerequisites": [
+    {
+      "id": "github-cli-apt",
+      "type": "apt-repository",
+      "architectures": ["x64", "arm64"],
+      "keyringUrl": "https://cli.github.com/packages/githubcli-archive-keyring.gpg",
+      "keyringSha256": "6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b",
+      "keyringPath": "/etc/apt/keyrings/githubcli-archive-keyring.gpg",
+      "repositoryBaseUrl": "https://cli.github.com/packages",
+      "repositorySuite": "stable",
+      "repositoryComponents": ["main"],
+      "sourcesListPath": "/etc/apt/sources.list.d/github-cli.list"
+    }
+  ],
   "packages": [
     { "key": "git", "name": "Git", "description": "Distributed version control system for tracking source code changes, collaborating across branches, and preserving commit history.", "tier": "core", "categories": ["source-control"], "configure": "git", "installStrategy": "winget", "license": "open-source", "platforms": { "windows": { "wingetId": "Git.Git" }, "ubuntu": { "support": "native", "manager": "apt-get", "packageId": "git", "privilege": "elevated", "scope": "machine", "architectures": ["x64", "arm64"], "installOptions": [], "estimate": { "downloadMbMin": 4, "downloadMbMax": 40, "installMinutesMin": 0.2, "installMinutesMax": 2 } } } },
-    { "key": "github-cli", "name": "GitHub CLI", "description": "Official command-line tool for GitHub to manage repositories, pull requests, issues, releases, and Actions workflows from the terminal.", "tier": "core", "categories": ["source-control"], "configure": "github", "installStrategy": "winget", "license": "open-source", "platforms": { "windows": { "wingetId": "GitHub.cli" }, "ubuntu": { "support": "unsupported", "reason": "The supported GitHub CLI package requires GitHub's signed APT repository, and typed repository prerequisites are not modeled yet." } } },
+    { "key": "github-cli", "name": "GitHub CLI", "description": "Official command-line tool for GitHub to manage repositories, pull requests, issues, releases, and Actions workflows from the terminal.", "tier": "core", "categories": ["source-control"], "configure": "github", "installStrategy": "winget", "license": "open-source", "platforms": { "windows": { "wingetId": "GitHub.cli" }, "ubuntu": { "support": "conditional", "condition": "the verified GitHub CLI APT repository prerequisite must be applied", "manager": "apt-get", "packageId": "gh", "privilege": "elevated", "scope": "machine", "architectures": ["x64", "arm64"], "prerequisiteIds": ["github-cli-apt"], "installOptions": [], "estimate": { "downloadMbMin": 8, "downloadMbMax": 40, "installMinutesMin": 0.2, "installMinutesMax": 3 } } } },
     { "key": "vscode", "name": "Visual Studio Code", "description": "Modern code editor providing built-in debugging, Git integration, syntax highlighting, IntelliSense, and extension ecosystem.", "tier": "core", "categories": ["editor"], "configure": "vscode", "installStrategy": "winget", "license": "vendor-terms", "platforms": { "windows": { "wingetId": "Microsoft.VisualStudioCode" }, "ubuntu": { "support": "conditional", "condition": "snapd must be installed and active", "manager": "snap", "packageId": "code", "privilege": "elevated", "scope": "machine", "architectures": ["x64"], "installOptions": ["--classic"], "estimate": { "downloadMbMin": 100, "downloadMbMax": 250, "installMinutesMin": 1, "installMinutesMax": 5 } } } },
     { "key": "powershell", "name": "PowerShell 7", "description": "Cross-platform task automation and configuration management framework with object-oriented shell scripting.", "tier": "core", "categories": ["shell"], "installStrategy": "winget", "license": "open-source", "platforms": { "windows": { "wingetId": "Microsoft.PowerShell" }, "ubuntu": { "support": "conditional", "condition": "snapd must be installed and active", "manager": "snap", "packageId": "powershell", "privilege": "elevated", "scope": "machine", "architectures": ["x64"], "installOptions": ["--classic"], "estimate": { "downloadMbMin": 70, "downloadMbMax": 200, "installMinutesMin": 1, "installMinutesMax": 5 } } } },
     { "key": "windows-terminal", "name": "Windows Terminal", "description": "Modern GPU-accelerated terminal application for Windows featuring tabbed windows, custom themes, and multi-shell support.", "tier": "core", "categories": ["terminal"], "installStrategy": "winget", "license": "open-source", "platforms": { "windows": { "wingetId": "Microsoft.WindowsTerminal" }, "ubuntu": { "support": "alternative", "alternativeName": "GNOME Terminal", "manager": "apt-get", "packageId": "gnome-terminal", "privilege": "elevated", "scope": "machine", "architectures": ["x64", "arm64"], "installOptions": [], "estimate": { "downloadMbMin": 5, "downloadMbMax": 100, "installMinutesMin": 0.5, "installMinutesMax": 5 } } } },

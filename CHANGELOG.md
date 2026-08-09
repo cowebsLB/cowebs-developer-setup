@@ -6,6 +6,8 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
+- Promoted GitHub CLI from explicit Ubuntu unsupported status to a conditional official APT provider backed by a typed, SHA-256-pinned signed-repository prerequisite.
+- Extended package catalog v3 and execution plan v1 with typed repository-key, APT source, and de-duplicated package-index refresh contracts while keeping real Linux prerequisite mutation disabled.
 - Extended the deterministic schema-v2 compatibility input and compiler with reviewed Ubuntu support classifications, typed APT/Snap provider mappings, architecture ranges, options, privilege/scope, and conservative estimates for the bounded core slice.
 - Changed planner failure behavior to report every selected package lacking a target provider in deterministic plan order.
 - Advanced development builds to `6.3.0-dev` and protected the published v6.2.0 identity from rebuilds on newer source.
@@ -14,13 +16,15 @@ All notable changes follow semantic versioning.
 
 ### Added
 
-- Added ten reviewed Ubuntu core providers, an explicit GNOME Terminal alternative, conditional Snap mappings for VS Code and PowerShell, and a fail-closed GitHub CLI classification pending typed signed-repository prerequisites.
+- Added a deterministic full 11-package Ubuntu x64 core plan and safe Linux prerequisite dry-run rendering for the official GitHub CLI repository.
+- Added reviewed Ubuntu core classifications, an explicit GNOME Terminal alternative, and conditional Snap mappings for VS Code and PowerShell.
 - Added bounded Ubuntu compilation/planning and planner-to-adapter detection/dry-run tests with byte-deterministic JSON assertions.
 - Added a source-only typed Linux provider adapter for Ubuntu and Fedora with direct `apt-get`, `dnf`, `snap`, and `flatpak` detection and installation commands.
 - Added Linux adapter tests for manager/platform compatibility, user and machine Flatpak scopes, dry-run isolation, process-start failures, native inventory queries, and unsafe positional-token rejection.
 
 ### Security
 
+- Pinned the GitHub CLI keyring by its official SHA-256, constrained repository URLs to credential-free HTTPS, constrained target files to APT-owned directories, and rejected real prerequisite execution until an elevated atomic implementation is reviewed.
 - Rejected unknown fields, stringly typed installer options, invalid provider contracts, and arbitrary shell data in Ubuntu compatibility mappings; unsupported packages never compile into executable providers.
 - Required explicit Linux privilege, scope, and Flatpak remote contracts; rejected unsupported cross-distribution managers, custom APT/DNF/Snap sources, option-shaped identifiers/remotes, and malformed or control-character arguments before process execution.
 - Made APT detection require the exact installed dpkg status instead of treating residual configuration state as an installed package.

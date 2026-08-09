@@ -64,6 +64,7 @@ try {
     $planSchemaText = Get-Content -LiteralPath (Join-Path $schemaRoot 'execution-plan-v1.schema.json') -Raw -Encoding UTF8
     Assert-True ($packageSchemaText -match '"installOptions"') 'Package schema must model installer options as typed tokens.'
     Assert-True ($packageSchemaText -match '"privilege"') 'Package schema must model privilege explicitly.'
+    Assert-True ($packageSchemaText -match '"prerequisites"' -and $packageSchemaText -match '"keyringSha256"') 'Package schema must model typed, digest-pinned repository prerequisites.'
     Assert-True ($planSchemaText -notmatch '"(?:command|shell)"') 'Execution plans must not accept arbitrary command or shell fields.'
     Assert-True ($planSchemaText -match '"then"\s*:\s*\{\s*"required"\s*:\s*\["manager",\s*"packageId"\]') 'Detect/install operations must require a typed provider mapping.'
     Assert-True ($planSchemaText -match '"then"\s*:\s*\{\s*"required"\s*:\s*\["configurationIntent"\]') 'Configure operations must require a configuration intent.'
@@ -122,11 +123,15 @@ try {
 
     $ubuntuMappings = @($packagesV2.packages | Where-Object { $null -ne (Get-OptionalValue $_.platforms 'ubuntu') })
     Assert-True ($ubuntuMappings.Count -eq 11) 'The first Ubuntu compatibility slice must classify all 11 core packages.'
-    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 1) 'Exactly one bounded core package must remain explicitly unsupported.'
+    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 0) 'The typed prerequisite slice must resolve every Ubuntu core mapping.'
+    Assert-True (@($packagesV3.prerequisites).Count -eq 1) 'The compiler must emit exactly one bounded Ubuntu prerequisite.'
+    $githubPrerequisite = @($packagesV3.prerequisites)[0]
+    Assert-True ($githubPrerequisite.id -eq 'github-cli-apt' -and $githubPrerequisite.type -eq 'apt-repository') 'GitHub CLI prerequisite identity changed.'
+    Assert-True ($githubPrerequisite.keyringSha256 -eq '6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b') 'GitHub CLI keyring digest changed.'
     $githubCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'github-cli' } | Select-Object -First 1
-    Assert-True ($null -eq (Get-OptionalValue $githubCompiled.providers 'ubuntu')) 'Unsupported GitHub CLI must not compile into an unsafe Ubuntu provider.'
+    Assert-True ((@($githubCompiled.providers.ubuntu)[0].prerequisiteIds -join ',') -eq 'github-cli-apt') 'GitHub CLI provider must reference its typed APT prerequisite.'
     $expectedUbuntuProviders = [ordered]@{
-        'git' = @('apt-get', 'git'); 'vscode' = @('snap', 'code'); 'powershell' = @('snap', 'powershell')
+        'git' = @('apt-get', 'git'); 'github-cli' = @('apt-get', 'gh'); 'vscode' = @('snap', 'code'); 'powershell' = @('snap', 'powershell')
         'windows-terminal' = @('apt-get', 'gnome-terminal'); 'seven-zip' = @('apt-get', '7zip')
         'jq' = @('apt-get', 'jq'); 'ripgrep' = @('apt-get', 'ripgrep'); 'fd' = @('apt-get', 'fd-find')
         'git-lfs' = @('apt-get', 'git-lfs'); 'openssl' = @('apt-get', 'openssl')
@@ -193,6 +198,24 @@ try {
     try { & $compilerPath -PackagesPath $stringOptionsPath -ProfilesPath $profilesV2Path -OutputDirectory (Join-Path $tempRoot 'string-options-output') | Out-Null }
     catch { $stringOptionsRejected = $_.Exception.Message -match 'installOptions must be a typed array' }
     Assert-True $stringOptionsRejected 'Compiler must reject stringly typed Ubuntu installer options.'
+
+    $unsafePrerequisiteCatalog = Get-Content -LiteralPath $packagesV2Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $unsafePrerequisiteCatalog.ubuntuPrerequisites[0].keyringUrl = 'https://user:password@cli.github.com/key.gpg'
+    $unsafePrerequisitePath = Join-Path $tempRoot 'unsafe-prerequisite.json'
+    Write-Utf8Json -Value $unsafePrerequisiteCatalog -Path $unsafePrerequisitePath
+    $unsafePrerequisiteRejected = $false
+    try { & $compilerPath -PackagesPath $unsafePrerequisitePath -ProfilesPath $profilesV2Path -OutputDirectory (Join-Path $tempRoot 'unsafe-prerequisite-output') | Out-Null }
+    catch { $unsafePrerequisiteRejected = $_.Exception.Message -match 'without credentials' }
+    Assert-True $unsafePrerequisiteRejected 'Compiler must reject repository prerequisite URLs containing credentials.'
+
+    $unknownPrerequisiteCatalog = Get-Content -LiteralPath $packagesV2Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $unknownPrerequisiteCatalog.packages[1].platforms.ubuntu.prerequisiteIds = @('missing-prerequisite')
+    $unknownPrerequisitePath = Join-Path $tempRoot 'unknown-prerequisite.json'
+    Write-Utf8Json -Value $unknownPrerequisiteCatalog -Path $unknownPrerequisitePath
+    $unknownPrerequisiteRejected = $false
+    try { & $compilerPath -PackagesPath $unknownPrerequisitePath -ProfilesPath $profilesV2Path -OutputDirectory (Join-Path $tempRoot 'unknown-prerequisite-output') | Out-Null }
+    catch { $unknownPrerequisiteRejected = $_.Exception.Message -match 'unknown id' }
+    Assert-True $unknownPrerequisiteRejected 'Compiler must reject unknown Ubuntu prerequisite references.'
 
     $compiledText = Get-Content -LiteralPath $resultOne.PackageCatalog -Raw -Encoding UTF8
     Assert-True ($compiledText -notmatch 'wingetOverride|installStrategy') 'Compiled v3 catalog must not retain raw v2 execution fields.'

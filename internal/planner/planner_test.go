@@ -96,6 +96,54 @@ func TestBuildReportsEveryUnsupportedPackageInPlanOrder(t *testing.T) {
 	}
 }
 
+func TestBuildEmitsAndDeduplicatesTypedAPTPrerequisites(t *testing.T) {
+	catalogs := testCatalogs()
+	prerequisite := catalog.Prerequisite{
+		ID: "github-cli-apt", Platform: "ubuntu", Type: "apt-repository", Architectures: []string{"x64"},
+		KeyringURL: "https://cli.github.com/packages/key.gpg", KeyringSHA256: strings.Repeat("a", 64),
+		KeyringPath: "/etc/apt/keyrings/github-cli.gpg", RepositoryBaseURL: "https://cli.github.com/packages",
+		RepositorySuite: "stable", RepositoryComponents: []string{"main"}, SourcesListPath: "/etc/apt/sources.list.d/github-cli.list",
+	}
+	catalogs.PrerequisiteByID = map[string]catalog.Prerequisite{prerequisite.ID: prerequisite}
+	for id, pkg := range catalogs.PackageByID {
+		provider := catalog.Provider{Manager: "apt-get", PackageID: id, Privilege: "elevated", Scope: "machine", Architectures: []string{"x64"}, Detection: catalog.Detection{Type: "manager-native"}}
+		if id == "core" || id == "parent" {
+			provider.PrerequisiteIDs = []string{prerequisite.ID}
+		}
+		pkg.Providers["ubuntu"] = []catalog.Provider{provider}
+		catalogs.PackageByID[id] = pkg
+	}
+
+	plan, err := Build(catalogs, Input{ProfileID: "child", Platform: "ubuntu", Architecture: "x64", EssentialsOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantKinds := []string{"ensure-repository-key", "ensure-apt-repository", "refresh-package-index"}
+	for index, kind := range wantKinds {
+		if plan.Operations[index].Kind != kind {
+			t.Fatalf("operation %d kind = %q, want %q", index, plan.Operations[index].Kind, kind)
+		}
+	}
+	if plan.Operations[1].RepositoryArchitecture != "amd64" {
+		t.Fatalf("repository architecture = %q", plan.Operations[1].RepositoryArchitecture)
+	}
+	if got := operationByID(plan, "install:core").DependsOn; !reflect.DeepEqual(got, []string{"detect:core", "prerequisite:apt-get:refresh"}) {
+		t.Fatalf("core install dependencies = %v", got)
+	}
+	if got := operationByID(plan, "install:parent").DependsOn; !reflect.DeepEqual(got, []string{"install:dependency", "detect:parent", "prerequisite:apt-get:refresh"}) {
+		t.Fatalf("parent install dependencies = %v", got)
+	}
+	refreshes := 0
+	for _, operation := range plan.Operations {
+		if operation.Kind == "refresh-package-index" {
+			refreshes++
+		}
+	}
+	if refreshes != 1 {
+		t.Fatalf("refresh operation count = %d, want 1", refreshes)
+	}
+}
+
 func TestBuildIsDeterministicAndConfigurationWaitsForInstalls(t *testing.T) {
 	catalogs := testCatalogs()
 	first, err := Build(catalogs, Input{ProfileID: "child"})

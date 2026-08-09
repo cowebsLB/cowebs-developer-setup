@@ -19,7 +19,7 @@ master-setup.bat
 
 ## Shared manifest layer
 
-`packages.json` assigns stable logical keys such as `git`, `node`, and `docker`. Schema v2 also records tier, categories, license family, install strategy, dependencies, conflicts, conditions, and platform compatibility mappings. Windows uses `platforms.windows.wingetId`. Reviewed Ubuntu entries use `support` classification plus typed manager, package ID, privilege, scope, architectures, installer-option array, and estimate fields; alternative and conditional mappings carry descriptive metadata, while unsupported mappings carry only a reason and compile to no provider.
+`packages.json` assigns stable logical keys such as `git`, `node`, and `docker`. Schema v2 also records tier, categories, license family, install strategy, dependencies, conflicts, conditions, and platform compatibility mappings. Windows uses `platforms.windows.wingetId`. Reviewed Ubuntu entries use `support` classification plus typed manager, package ID, privilege, scope, architectures, prerequisite references, installer-option array, and estimate fields. `ubuntuPrerequisites` defines reusable signed APT repositories as typed HTTPS URLs, a pinned keyring digest and constrained target, repository suite/components, architectures, and a constrained sources-list target; it contains no command or shell field.
 
 `profiles.json` defines shared core packages, reusable use-case packs, role essentials, recommended packs, optional packs, and composite inheritance. The adapter resolves profile inheritance and package dependencies recursively, de-duplicates keys while preserving first-seen order, and rejects conflicts before installation.
 
@@ -37,22 +37,22 @@ Windows estimates are catalog-driven. The manifest supplies conservative fallbac
 
 The v6.2 source tree includes a development redesign foundation with versioned contracts without cutting those artifacts into the v6.2 runtime:
 
-- `schema/package-catalog-v3.schema.json` separates logical package intent from typed platform-provider mappings.
+- `schema/package-catalog-v3.schema.json` separates logical package intent from typed platform-provider mappings and reusable signed-repository prerequisites.
 - `schema/profile-catalog-v3.schema.json` gives packs and profiles explicit IDs while retaining logical references.
 - `schema/execution-plan-v1.schema.json` defines a typed plan that cannot carry arbitrary command or shell fields.
 - `schema/execution-event-v1.schema.json` defines the future console, journal, broker, and JSON-output event vocabulary.
 - `schema/release-manifest-v1.schema.json` defines immutable multi-platform artifact metadata and hashes.
 - `scripts/convert-catalog-v2-to-v3.ps1` compiles the production v2 manifests into deterministic shadow-planner inputs, including validated Ubuntu providers without creating a second hand-maintained catalog.
 - `internal/catalog` strictly loads and cross-validates the generated catalogs.
-- `internal/planner` resolves profile inheritance, packs, dependency order, conflicts, providers, estimates, and typed operations without invoking a package manager; missing target providers are returned together in deterministic logical-package order.
+- `internal/planner` resolves profile inheritance, packs, dependency order, conflicts, providers, prerequisites, estimates, and typed operations without invoking a package manager; missing target providers are returned together in deterministic logical-package order. Shared APT repository setup is emitted once, followed by one package-index refresh on which dependent installs wait.
 - `internal/adapter/windows` implements native Winget detection, argument construction, and execution without invoking command shells.
-- `internal/adapter/linux` implements Ubuntu/Fedora validation, native dpkg/DNF/Snap/Flatpak detection, exact installed-state handling, and direct typed installation commands without invoking command shells.
+- `internal/adapter/linux` implements Ubuntu/Fedora validation, native dpkg/DNF/Snap/Flatpak detection, exact installed-state handling, direct typed installation commands, and non-mutating rendering of validated Ubuntu repository prerequisites without invoking command shells.
 - `internal/broker` regenerates the canonical plan from verified catalogs, requires elevation for real execution, directly invokes the allowlisted Windows provider, skips installs already satisfied by detection, and emits redacted `execution-event-v1` events.
 - `internal/journal` handles strict schema-v1 JSONL event persistence, monotonic sequences, flushed atomic state snapshots, plan-bound recovery, and fail-closed resume validation.
 - `internal/doctor` executes diagnostic checks across OS compatibility, package manager availability, workspace directories, and catalog integrity.
 - `cmd/cowebs-setup` exposes the core via deterministic development CLI subcommands: `plan`, `broker`, `status`, `resume`, and `doctor` (with `--json` support).
 
-The shadow planner has exact black-box parity with the production PowerShell planner. The Windows and Linux provider adapters, Windows privileged broker, journal, resume/status flow, and diagnostic CLI have unit and CLI integration coverage, including the principal tamper and recovery boundaries; this is not a claim of exhaustive security proof or real-install validation. The bounded Ubuntu test compiles ten reviewed core mappings, verifies deterministic JSON, and routes representative plan operations through injected detection and dry-run execution. It performs no real installation. Schema v2 remains authoritative for `src/windows/setup.ps1` and the public release; neither the Go binary nor schema-v3 catalogs are included in that runtime ZIP.
+The shadow planner has exact black-box parity with the production PowerShell planner. The Windows and Linux provider adapters, Windows privileged broker, journal, resume/status flow, and diagnostic CLI have unit and CLI integration coverage, including the principal tamper and recovery boundaries; this is not a claim of exhaustive security proof or real-install validation. The Ubuntu test compiles all 11 reviewed x64 core mappings, verifies deterministic JSON and typed GitHub repository ordering, and routes representative plan operations through injected detection and dry-run execution. Real prerequisite execution deliberately returns an error. Schema v2 remains authoritative for `src/windows/setup.ps1` and the public release; neither the Go binary nor schema-v3 catalogs are included in that runtime ZIP.
 
 ## Target architecture
 

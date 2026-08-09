@@ -44,11 +44,32 @@
               "required": ["kind"]
             },
             "then": { "required": ["configurationIntent"] }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "const": "ensure-repository-key" } },
+              "required": ["kind"]
+            },
+            "then": { "required": ["prerequisiteId", "url", "sha256", "targetPath", "scope"] }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "const": "ensure-apt-repository" } },
+              "required": ["kind"]
+            },
+            "then": { "required": ["prerequisiteId", "repositoryBaseUrl", "repositorySuite", "repositoryComponents", "repositoryArchitecture", "keyringPath", "targetPath", "scope"] }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "const": "refresh-package-index" } },
+              "required": ["kind"]
+            },
+            "then": { "required": ["manager", "scope"] }
           }
         ],
         "properties": {
           "id": { "type": "string", "minLength": 1 },
-          "kind": { "enum": ["detect", "install", "configure", "restart-check"] },
+          "kind": { "enum": ["detect", "install", "configure", "restart-check", "ensure-repository-key", "ensure-apt-repository", "refresh-package-index"] },
           "logicalPackageId": { "type": "string", "minLength": 1 },
           "manager": { "enum": ["winget", "brew", "brew-cask", "apt-get", "dnf", "snap", "flatpak"] },
           "packageId": { "type": "string", "minLength": 1 },
@@ -56,6 +77,15 @@
           "scope": { "enum": ["auto", "user", "machine"] },
           "installOptions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
           "configurationIntent": { "type": "string", "minLength": 1 },
+          "prerequisiteId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "targetPath": { "type": "string", "minLength": 1 },
+          "repositoryBaseUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+          "repositorySuite": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+          "repositoryComponents": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" } },
+          "repositoryArchitecture": { "enum": ["i386", "amd64", "arm64"] },
+          "keyringPath": { "type": "string", "pattern": "^/etc/apt/keyrings/[A-Za-z0-9._-]+$" },
           "privilege": { "enum": ["user", "elevated"] },
           "dependsOn": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
         }

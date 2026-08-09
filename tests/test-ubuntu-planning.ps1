@@ -44,17 +44,7 @@ try {
     $compiled = Join-Path $tempRoot 'compiled'
     & $compilerPath -OutputDirectory $compiled | Out-Null
 
-    $boundedProfiles = Get-Content -LiteralPath $profilesPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $boundedProfiles.corePackages = @(
-        'git', 'vscode', 'powershell', 'windows-terminal', 'seven-zip',
-        'jq', 'ripgrep', 'fd', 'git-lfs', 'openssl'
-    )
-    $boundedProfilesPath = Join-Path $tempRoot 'bounded-profiles-v2.json'
-    $boundedProfiles | ConvertTo-Json -Depth 20 | ForEach-Object {
-        [IO.File]::WriteAllText($boundedProfilesPath, $_, [Text.UTF8Encoding]::new($false))
-    }
-    $boundedCompiled = Join-Path $tempRoot 'bounded-compiled'
-    & $compilerPath -PackagesPath $packagesPath -ProfilesPath $boundedProfilesPath -OutputDirectory $boundedCompiled | Out-Null
+    $profiles = Get-Content -LiteralPath $profilesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
     $cliPath = Join-Path $tempRoot 'cowebs-setup.exe'
     $goExecutable = Resolve-GoExecutable
@@ -62,8 +52,8 @@ try {
     Assert-True ($build.ExitCode -eq 0) "Go CLI build failed: $($build.Stderr)"
 
     $planArguments = @(
-        'plan', '--packages', (Join-Path $boundedCompiled 'package-catalog.v3.json'),
-        '--profiles', (Join-Path $boundedCompiled 'profile-catalog.v3.json'),
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', (Join-Path $compiled 'profile-catalog.v3.json'),
         '--profile', 'game', '--platform', 'ubuntu', '--architecture', 'x64',
         '--essentials-only', '--json'
     )
@@ -75,22 +65,30 @@ try {
     $plan = $first.Stdout | ConvertFrom-Json
     Assert-True ($plan.platform -eq 'ubuntu' -and $plan.architecture -eq 'x64') 'Bounded plan target changed.'
     $installs = @($plan.operations | Where-Object { $_.kind -eq 'install' })
-    Assert-True ($installs.Count -eq 10) 'Bounded Ubuntu plan must contain ten supported core installs.'
-    Assert-True (($installs.logicalPackageId -join ',') -eq ($boundedProfiles.corePackages -join ',')) 'Bounded Ubuntu install order changed.'
+    Assert-True ($installs.Count -eq 11) 'Ubuntu core plan must contain all 11 core installs.'
+    Assert-True (($installs.logicalPackageId -join ',') -eq ($profiles.corePackages -join ',')) 'Ubuntu core install order changed.'
     Assert-True (($installs | Where-Object { $_.logicalPackageId -eq 'vscode' }).manager -eq 'snap') 'VS Code must use the reviewed Snap provider.'
     Assert-True (($installs | Where-Object { $_.logicalPackageId -eq 'windows-terminal' }).packageId -eq 'gnome-terminal') 'The terminal alternative mapping changed.'
-    Assert-True (@($plan.operations | Where-Object { $_.kind -eq 'configure' }).Count -eq 3) 'Unsupported Linux configuration intents must remain explicit in the plan.'
+    $githubInstall = $installs | Where-Object { $_.logicalPackageId -eq 'github-cli' } | Select-Object -First 1
+    Assert-True ($githubInstall.packageId -eq 'gh' -and $githubInstall.manager -eq 'apt-get') 'GitHub CLI must use its official APT provider.'
+    Assert-True (($githubInstall.dependsOn -join ',') -eq 'detect:github-cli,prerequisite:apt-get:refresh') 'GitHub CLI install must wait for detection and the typed APT refresh.'
+    $prerequisites = @($plan.operations | Where-Object { $_.kind -in @('ensure-repository-key', 'ensure-apt-repository', 'refresh-package-index') })
+    Assert-True (($prerequisites.kind -join ',') -eq 'ensure-repository-key,ensure-apt-repository,refresh-package-index') 'Typed GitHub repository prerequisite order changed.'
+    Assert-True ($prerequisites[0].sha256 -eq '6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b') 'GitHub keyring digest changed.'
+    Assert-True ($prerequisites[1].repositoryArchitecture -eq 'amd64') 'Ubuntu x64 must map to the APT amd64 architecture.'
+    Assert-True (($prerequisites[2].dependsOn -join ',') -eq 'prerequisite:github-cli-apt:repository') 'APT refresh must be emitted once after repository setup.'
+    Assert-True (@($plan.operations | Where-Object { $_.kind -eq 'configure' }).Count -eq 4) 'Linux configuration intents must remain explicit in the plan.'
 
     $unsupported = Invoke-Native -FilePath $cliPath -Arguments @(
         'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
         '--profiles', (Join-Path $compiled 'profile-catalog.v3.json'),
-        '--profile', 'game', '--platform', 'ubuntu', '--architecture', 'x64',
+        '--profile', 'game', '--platform', 'ubuntu', '--architecture', 'arm64',
         '--essentials-only', '--json'
     )
-    Assert-True ($unsupported.ExitCode -eq 1) 'The real Ubuntu essentials plan must fail closed while GitHub CLI is unsupported.'
-    Assert-True ($unsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: github-cli') 'Ubuntu unsupported-package diagnostic changed or omitted intent.'
+    Assert-True ($unsupported.ExitCode -eq 1) 'Ubuntu arm64 must fail closed while the reviewed Snap mappings remain x64-only.'
+    Assert-True ($unsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/arm64: vscode, powershell') 'Ubuntu arm64 unsupported-package diagnostic changed or omitted intent.'
 
-    Write-Host 'PASS: bounded Ubuntu compilation and deterministic planning with fail-closed unsupported diagnostics.' -ForegroundColor Green
+    Write-Host 'PASS: full Ubuntu core compilation, typed repository planning, deterministic JSON, and fail-closed architecture diagnostics.' -ForegroundColor Green
 } finally {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }
 }

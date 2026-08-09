@@ -2,7 +2,9 @@ package linux
 
 import (
 	"fmt"
+	"net/url"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/cowebsLB/cowebs-developer-setup/internal/planner"
@@ -124,6 +126,34 @@ func (a *Adapter) ExecuteInstall(op planner.Operation, dryRun bool) (int, string
 	return a.Runner.Run(command, args...)
 }
 
+func (a *Adapter) RenderPrerequisite(op planner.Operation) (string, error) {
+	if err := a.validatePrerequisiteOperation(op); err != nil {
+		return "", err
+	}
+	switch op.Kind {
+	case "ensure-repository-key":
+		return fmt.Sprintf("PLANNED: verify SHA-256 %s and install %s -> %s", op.SHA256, op.URL, op.TargetPath), nil
+	case "ensure-apt-repository":
+		line := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s %s", op.RepositoryArchitecture, op.KeyringPath, op.RepositoryBaseURL, op.RepositorySuite, strings.Join(op.RepositoryComponents, " "))
+		return fmt.Sprintf("PLANNED: write APT source %s -> %s", line, op.TargetPath), nil
+	case "refresh-package-index":
+		return fmt.Sprintf("PLANNED: %s update", a.path("apt-get")), nil
+	default:
+		return "", fmt.Errorf("unsupported prerequisite operation kind %q", op.Kind)
+	}
+}
+
+func (a *Adapter) ExecutePrerequisite(op planner.Operation, dryRun bool) (int, string, error) {
+	rendered, err := a.RenderPrerequisite(op)
+	if err != nil {
+		return 1, "", err
+	}
+	if !dryRun {
+		return 1, "", fmt.Errorf("real Linux prerequisite execution is not implemented")
+	}
+	return 0, rendered, nil
+}
+
 func (a *Adapter) detectionCommand(op planner.Operation) (string, []string, error) {
 	switch op.Manager {
 	case "apt-get":
@@ -189,6 +219,94 @@ func (a *Adapter) validateOperation(op planner.Operation) error {
 		return fmt.Errorf("manager %q operation %s requires elevated/machine privilege and scope", op.Manager, op.ID)
 	}
 	return nil
+}
+
+var (
+	prerequisiteIDPattern  = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+	keyringPathPattern     = regexp.MustCompile(`^/etc/apt/keyrings/[A-Za-z0-9._-]+$`)
+	sourcesPathPattern     = regexp.MustCompile(`^/etc/apt/sources.list.d/[A-Za-z0-9._-]+\.list$`)
+	repositoryTokenPattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+	sha256DigestPattern    = regexp.MustCompile(`^[a-f0-9]{64}$`)
+)
+
+func (a *Adapter) validatePrerequisiteOperation(op planner.Operation) error {
+	if a == nil || a.Runner == nil {
+		return fmt.Errorf("Linux adapter and command runner are required")
+	}
+	if a.Platform != PlatformUbuntu {
+		return fmt.Errorf("APT prerequisite operation %s requires Ubuntu", op.ID)
+	}
+	if op.Privilege != "elevated" || op.Scope != "machine" {
+		return fmt.Errorf("prerequisite operation %s requires elevated/machine privilege and scope", op.ID)
+	}
+	if op.Kind != "refresh-package-index" && !prerequisiteIDPattern.MatchString(op.PrerequisiteID) {
+		return fmt.Errorf("prerequisite operation %s has invalid prerequisite ID", op.ID)
+	}
+	switch op.Kind {
+	case "ensure-repository-key":
+		if err := validateHTTPSURL("keyring URL", op.ID, op.URL); err != nil {
+			return err
+		}
+		if !sha256DigestPattern.MatchString(op.SHA256) {
+			return fmt.Errorf("prerequisite operation %s has invalid SHA-256", op.ID)
+		}
+		if !keyringPathPattern.MatchString(op.TargetPath) {
+			return fmt.Errorf("prerequisite operation %s has unsafe keyring target path", op.ID)
+		}
+	case "ensure-apt-repository":
+		if err := validateHTTPSURL("repository base URL", op.ID, op.RepositoryBaseURL); err != nil {
+			return err
+		}
+		if !repositoryTokenPattern.MatchString(op.RepositorySuite) || len(op.RepositoryComponents) == 0 || hasDuplicate(op.RepositoryComponents) {
+			return fmt.Errorf("prerequisite operation %s has invalid repository suite or components", op.ID)
+		}
+		for _, component := range op.RepositoryComponents {
+			if !repositoryTokenPattern.MatchString(component) {
+				return fmt.Errorf("prerequisite operation %s has invalid repository component", op.ID)
+			}
+		}
+		if !containsString([]string{"i386", "amd64", "arm64"}, op.RepositoryArchitecture) {
+			return fmt.Errorf("prerequisite operation %s has invalid repository architecture", op.ID)
+		}
+		if !keyringPathPattern.MatchString(op.KeyringPath) || !sourcesPathPattern.MatchString(op.TargetPath) {
+			return fmt.Errorf("prerequisite operation %s has unsafe APT paths", op.ID)
+		}
+	case "refresh-package-index":
+		if op.Manager != "apt-get" {
+			return fmt.Errorf("prerequisite operation %s has invalid refresh manager", op.ID)
+		}
+	default:
+		return fmt.Errorf("unsupported prerequisite operation kind %q", op.Kind)
+	}
+	return nil
+}
+
+func validateHTTPSURL(name, operationID, value string) error {
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil || !strings.HasPrefix(value, "https://") || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || strings.ContainsAny(value, "\r\n\x00") {
+		return fmt.Errorf("%s for operation %s is invalid", name, operationID)
+	}
+	return nil
+}
+
+func hasDuplicate(values []string) bool {
+	seen := make(map[string]bool, len(values))
+	for _, value := range values {
+		if seen[value] {
+			return true
+		}
+		seen[value] = true
+	}
+	return false
+}
+
+func containsString(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Adapter) path(manager string) string {

@@ -190,6 +190,53 @@ func TestUbuntuBoundedPlanRoutesThroughDetectionAndDryRun(t *testing.T) {
 	}
 }
 
+func TestTypedAPTPrerequisiteDryRun(t *testing.T) {
+	adapter, _ := NewAdapter(PlatformUbuntu)
+	runner := &mockRunner{}
+	adapter.Runner = runner
+	operations := []planner.Operation{
+		{ID: "prerequisite:github-cli-apt:keyring", Kind: "ensure-repository-key", LogicalPackageID: "github-cli", PrerequisiteID: "github-cli-apt", URL: "https://cli.github.com/packages/githubcli-archive-keyring.gpg", SHA256: strings.Repeat("a", 64), TargetPath: "/etc/apt/keyrings/githubcli-archive-keyring.gpg", Privilege: "elevated", Scope: "machine"},
+		{ID: "prerequisite:github-cli-apt:repository", Kind: "ensure-apt-repository", LogicalPackageID: "github-cli", PrerequisiteID: "github-cli-apt", RepositoryBaseURL: "https://cli.github.com/packages", RepositorySuite: "stable", RepositoryComponents: []string{"main"}, RepositoryArchitecture: "amd64", KeyringPath: "/etc/apt/keyrings/githubcli-archive-keyring.gpg", TargetPath: "/etc/apt/sources.list.d/github-cli.list", Privilege: "elevated", Scope: "machine"},
+		{ID: "prerequisite:apt-get:refresh", Kind: "refresh-package-index", LogicalPackageID: "github-cli", Manager: "apt-get", Privilege: "elevated", Scope: "machine"},
+	}
+	want := []string{
+		"PLANNED: verify SHA-256 " + strings.Repeat("a", 64) + " and install https://cli.github.com/packages/githubcli-archive-keyring.gpg -> /etc/apt/keyrings/githubcli-archive-keyring.gpg",
+		"PLANNED: write APT source deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main -> /etc/apt/sources.list.d/github-cli.list",
+		"PLANNED: apt-get update",
+	}
+	for index, operation := range operations {
+		code, output, err := adapter.ExecutePrerequisite(operation, true)
+		if err != nil || code != 0 || output != want[index] || runner.calls != 0 {
+			t.Fatalf("operation %d: code=%d output=%q calls=%d err=%v", index, code, output, runner.calls, err)
+		}
+	}
+	if _, _, err := adapter.ExecutePrerequisite(operations[0], false); err == nil || !strings.Contains(err.Error(), "not implemented") {
+		t.Fatalf("real prerequisite execution error = %v", err)
+	}
+}
+
+func TestTypedAPTPrerequisiteRejectsUnsafeData(t *testing.T) {
+	base := planner.Operation{ID: "prerequisite:test:keyring", Kind: "ensure-repository-key", LogicalPackageID: "test", PrerequisiteID: "test-apt", URL: "https://example.com/key.gpg", SHA256: strings.Repeat("a", 64), TargetPath: "/etc/apt/keyrings/test.gpg", Privilege: "elevated", Scope: "machine"}
+	tests := []struct {
+		name     string
+		platform string
+		op       planner.Operation
+	}{
+		{"credentials in URL", PlatformUbuntu, func() planner.Operation { op := base; op.URL = "https://user:password@example.com/key.gpg"; return op }()},
+		{"unsafe target path", PlatformUbuntu, func() planner.Operation { op := base; op.TargetPath = "/tmp/test.gpg"; return op }()},
+		{"invalid digest", PlatformUbuntu, func() planner.Operation { op := base; op.SHA256 = "abc"; return op }()},
+		{"wrong platform", PlatformFedora, base},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			adapter, _ := NewAdapter(test.platform)
+			if _, err := adapter.RenderPrerequisite(test.op); err == nil {
+				t.Fatal("expected prerequisite rejection")
+			}
+		})
+	}
+}
+
 func TestRejectsUnsafeOrMismatchedContracts(t *testing.T) {
 	tests := []struct {
 		name     string

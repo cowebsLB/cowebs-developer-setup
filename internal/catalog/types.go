@@ -1,8 +1,23 @@
 package catalog
 
 type PackageCatalog struct {
-	SchemaVersion int       `json:"schemaVersion"`
-	Packages      []Package `json:"packages"`
+	SchemaVersion int            `json:"schemaVersion"`
+	Prerequisites []Prerequisite `json:"prerequisites"`
+	Packages      []Package      `json:"packages"`
+}
+
+type Prerequisite struct {
+	ID                   string   `json:"id"`
+	Platform             string   `json:"platform"`
+	Type                 string   `json:"type"`
+	Architectures        []string `json:"architectures"`
+	KeyringURL           string   `json:"keyringUrl"`
+	KeyringSHA256        string   `json:"keyringSha256"`
+	KeyringPath          string   `json:"keyringPath"`
+	RepositoryBaseURL    string   `json:"repositoryBaseUrl"`
+	RepositorySuite      string   `json:"repositorySuite"`
+	RepositoryComponents []string `json:"repositoryComponents"`
+	SourcesListPath      string   `json:"sourcesListPath"`
 }
 
 type Package struct {
@@ -27,15 +42,16 @@ type Conditions struct {
 }
 
 type Provider struct {
-	Manager        string    `json:"manager"`
-	PackageID      string    `json:"packageId"`
-	Source         string    `json:"source,omitempty"`
-	Privilege      string    `json:"privilege"`
-	Scope          string    `json:"scope"`
-	Architectures  []string  `json:"architectures,omitempty"`
-	Detection      Detection `json:"detection"`
-	InstallOptions []string  `json:"installOptions"`
-	Estimate       Estimate  `json:"estimate"`
+	Manager         string    `json:"manager"`
+	PackageID       string    `json:"packageId"`
+	Source          string    `json:"source,omitempty"`
+	Privilege       string    `json:"privilege"`
+	Scope           string    `json:"scope"`
+	Architectures   []string  `json:"architectures,omitempty"`
+	PrerequisiteIDs []string  `json:"prerequisiteIds,omitempty"`
+	Detection       Detection `json:"detection"`
+	InstallOptions  []string  `json:"installOptions"`
+	Estimate        Estimate  `json:"estimate"`
 }
 
 type Detection struct {
@@ -72,10 +88,11 @@ type Profile struct {
 }
 
 type Catalogs struct {
-	Packages      PackageCatalog
-	Profiles      ProfileCatalog
-	PackageByID   map[string]Package
-	PackByID      map[string]Pack
-	ProfileByID   map[string]Profile
-	CatalogSHA256 string
+	Packages         PackageCatalog
+	Profiles         ProfileCatalog
+	PackageByID      map[string]Package
+	PrerequisiteByID map[string]Prerequisite
+	PackByID         map[string]Pack
+	ProfileByID      map[string]Profile
+	CatalogSHA256    string
 }

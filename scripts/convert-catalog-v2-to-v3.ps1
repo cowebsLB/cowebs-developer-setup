@@ -73,6 +73,17 @@ function Assert-Estimate {
     if ([double]$Estimate.installMinutesMax -lt [double]$Estimate.installMinutesMin) { throw "$Context time estimate maximum is less than its minimum." }
 }
 
+function Get-TypedStringArray {
+    param($Object, [string]$Name, [string]$Context, [bool]$AllowEmpty = $true)
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $property.Value -is [string]) { throw "$Context $Name must be a typed array." }
+    $values = @($property.Value | ForEach-Object { [string]$_ })
+    if (-not $AllowEmpty -and $values.Count -eq 0) { throw "$Context $Name must not be empty." }
+    if (@($values | Sort-Object -Unique).Count -ne $values.Count) { throw "$Context $Name must contain unique values." }
+    foreach ($value in $values) { Assert-NonEmptyText -Value $value -Context "$Context $Name item" }
+    return [string[]]$values
+}
+
 function Convert-InstallOptions {
     param([string]$Override, [string]$PackageId)
     if (-not $Override) { return [string[]]@() }
@@ -93,12 +104,12 @@ function Convert-Estimate {
 }
 
 function Convert-UbuntuProvider {
-    param($Mapping, [string]$PackageId)
+    param($Mapping, [string]$PackageId, $KnownPrerequisites, $PrerequisitesById)
     $context = "Package '$PackageId' Ubuntu mapping"
     Assert-OnlyProperties -Object $Mapping -Allowed @(
         'support', 'reason', 'condition', 'alternativeName',
         'manager', 'packageId', 'source', 'privilege', 'scope',
-        'architectures', 'installOptions', 'estimate'
+        'architectures', 'prerequisiteIds', 'installOptions', 'estimate'
     ) -Context $context
 
     $support = [string](Get-OptionalValue -Object $Mapping -Name 'support')
@@ -107,7 +118,7 @@ function Convert-UbuntuProvider {
     }
     if ($support -eq 'unsupported') {
         Assert-NonEmptyText -Value (Get-OptionalValue -Object $Mapping -Name 'reason') -Context "$context reason"
-        foreach ($field in @('manager', 'packageId', 'source', 'privilege', 'scope', 'architectures', 'installOptions', 'estimate', 'condition', 'alternativeName')) {
+        foreach ($field in @('manager', 'packageId', 'source', 'privilege', 'scope', 'architectures', 'prerequisiteIds', 'installOptions', 'estimate', 'condition', 'alternativeName')) {
             if ($Mapping.PSObject.Properties[$field]) { throw "$context marked unsupported must not define provider field '$field'." }
         }
         return $null
@@ -145,20 +156,23 @@ function Convert-UbuntuProvider {
         }
     }
 
-    $architecturesProperty = $Mapping.PSObject.Properties['architectures']
-    if (-not $architecturesProperty -or $architecturesProperty.Value -is [string]) { throw "$context architectures must be a typed array." }
-    $architecturesValue = $architecturesProperty.Value
-    $architectures = @($architecturesValue | ForEach-Object { [string]$_ })
-    if ($architectures.Count -eq 0 -or @($architectures | Sort-Object -Unique).Count -ne $architectures.Count) { throw "$context architectures must be a non-empty unique array." }
+    $architectures = @(Get-TypedStringArray -Object $Mapping -Name 'architectures' -Context $context -AllowEmpty $false)
     foreach ($architecture in $architectures) {
         if (@('x86', 'x64', 'arm64') -notcontains $architecture) { throw "$context contains unsupported architecture '$architecture'." }
     }
 
-    $installOptionsProperty = $Mapping.PSObject.Properties['installOptions']
-    if (-not $installOptionsProperty -or $installOptionsProperty.Value -is [string]) { throw "$context installOptions must be a typed array." }
-    $installOptionsValue = $installOptionsProperty.Value
-    $installOptions = @($installOptionsValue | ForEach-Object { [string]$_ })
-    foreach ($option in $installOptions) { Assert-NonEmptyText -Value $option -Context "$context install option" }
+    $prerequisiteIds = @()
+    if ($Mapping.PSObject.Properties['prerequisiteIds']) {
+        $prerequisiteIds = @(Get-TypedStringArray -Object $Mapping -Name 'prerequisiteIds' -Context $context)
+        Assert-KnownIds -Ids $prerequisiteIds -KnownIds $KnownPrerequisites -Context "$context prerequisites"
+        foreach ($prerequisiteId in $prerequisiteIds) {
+            $prerequisite = $PrerequisitesById[$prerequisiteId]
+            foreach ($architecture in $architectures) {
+                if (@($prerequisite.architectures) -notcontains $architecture) { throw "$context architecture '$architecture' is not supported by prerequisite '$prerequisiteId'." }
+            }
+        }
+    }
+    $installOptions = @(Get-TypedStringArray -Object $Mapping -Name 'installOptions' -Context $context)
     Assert-Estimate -Estimate (Get-OptionalValue -Object $Mapping -Name 'estimate') -Context $context
 
     $provider = [ordered]@{
@@ -169,10 +183,56 @@ function Convert-UbuntuProvider {
     $provider.privilege = $privilege
     $provider.scope = $scope
     $provider.architectures = $architectures
+    if ($prerequisiteIds.Count -gt 0) { $provider.prerequisiteIds = $prerequisiteIds }
     $provider.detection = [ordered]@{ type = 'manager-native' }
     $provider.installOptions = $installOptions
     $provider.estimate = Convert-Estimate -Estimate $Mapping.estimate
     return [pscustomobject]$provider
+}
+
+function Convert-UbuntuPrerequisite {
+    param($Prerequisite)
+    $id = [string](Get-OptionalValue -Object $Prerequisite -Name 'id')
+    $context = "Ubuntu prerequisite '$id'"
+    Assert-OnlyProperties -Object $Prerequisite -Allowed @(
+        'id', 'type', 'architectures', 'keyringUrl', 'keyringSha256', 'keyringPath',
+        'repositoryBaseUrl', 'repositorySuite', 'repositoryComponents', 'sourcesListPath'
+    ) -Context $context
+    if ($id -notmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$') { throw "$context has an invalid id." }
+    if ([string]$Prerequisite.type -ne 'apt-repository') { throw "$context uses unsupported type '$($Prerequisite.type)'." }
+    $architectures = @(Get-TypedStringArray -Object $Prerequisite -Name 'architectures' -Context $context -AllowEmpty $false)
+    foreach ($architecture in $architectures) {
+        if (@('x86', 'x64', 'arm64') -notcontains $architecture) { throw "$context has unsupported architecture '$architecture'." }
+    }
+    foreach ($urlField in @('keyringUrl', 'repositoryBaseUrl')) {
+        $value = Get-OptionalValue -Object $Prerequisite -Name $urlField
+        Assert-NonEmptyText -Value $value -Context "$context $urlField"
+        $uri = $null
+        if (-not ([string]$value).StartsWith('https://', [StringComparison]::Ordinal) -or -not [Uri]::TryCreate([string]$value, [UriKind]::Absolute, [ref]$uri) -or $uri.Scheme -cne 'https' -or -not $uri.Host -or $uri.UserInfo -or $uri.Query -or $uri.Fragment) {
+            throw "$context $urlField must be an HTTPS URL without credentials, query, or fragment."
+        }
+    }
+    if ([string]$Prerequisite.keyringSha256 -cnotmatch '^[a-f0-9]{64}$') { throw "$context keyringSha256 must be a lowercase SHA-256 digest." }
+    if ([string]$Prerequisite.keyringPath -notmatch '^/etc/apt/keyrings/[A-Za-z0-9._-]+$') { throw "$context has an unsafe keyringPath." }
+    if ([string]$Prerequisite.sourcesListPath -notmatch '^/etc/apt/sources\.list\.d/[A-Za-z0-9._-]+\.list$') { throw "$context has an unsafe sourcesListPath." }
+    if ([string]$Prerequisite.repositorySuite -notmatch '^[A-Za-z0-9._-]+$') { throw "$context has an invalid repositorySuite." }
+    $components = @(Get-TypedStringArray -Object $Prerequisite -Name 'repositoryComponents' -Context $context -AllowEmpty $false)
+    foreach ($component in $components) {
+        if ($component -notmatch '^[A-Za-z0-9._-]+$') { throw "$context has invalid repository component '$component'." }
+    }
+    return [pscustomobject][ordered]@{
+        id = $id
+        platform = 'ubuntu'
+        type = 'apt-repository'
+        architectures = $architectures
+        keyringUrl = [string]$Prerequisite.keyringUrl
+        keyringSha256 = [string]$Prerequisite.keyringSha256
+        keyringPath = [string]$Prerequisite.keyringPath
+        repositoryBaseUrl = [string]$Prerequisite.repositoryBaseUrl
+        repositorySuite = [string]$Prerequisite.repositorySuite
+        repositoryComponents = $components
+        sourcesListPath = [string]$Prerequisite.sourcesListPath
+    }
 }
 
 function Write-DeterministicJson {
@@ -205,6 +265,15 @@ foreach ($package in $packageItemsV2) {
 
 $estimatePolicy = Get-OptionalValue -Object $packageCatalogV2 -Name 'windowsEstimatePolicy'
 if (-not $estimatePolicy) { throw 'Package catalog is missing windowsEstimatePolicy.' }
+$ubuntuPrerequisitesV2 = @((Get-OptionalValue -Object $packageCatalogV2 -Name 'ubuntuPrerequisites'))
+$knownUbuntuPrerequisites = Assert-UniqueIds -Items $ubuntuPrerequisitesV2 -PropertyName 'id' -Label 'Ubuntu prerequisite catalog'
+$ubuntuPrerequisitesById = @{}
+$ubuntuPrerequisitesV3 = New-Object System.Collections.Generic.List[object]
+foreach ($prerequisite in $ubuntuPrerequisitesV2) {
+    $convertedPrerequisite = Convert-UbuntuPrerequisite -Prerequisite $prerequisite
+    $ubuntuPrerequisitesById[$convertedPrerequisite.id] = $convertedPrerequisite
+    $ubuntuPrerequisitesV3.Add($convertedPrerequisite)
+}
 $packagesV3 = New-Object System.Collections.Generic.List[object]
 foreach ($package in $packageItemsV2) {
     $packageId = [string]$package.key
@@ -238,7 +307,7 @@ foreach ($package in $packageItemsV2) {
     $providers = [ordered]@{ windows = @($provider) }
     $ubuntu = Get-OptionalValue -Object $package.platforms -Name 'ubuntu'
     if ($ubuntu) {
-        $ubuntuProvider = Convert-UbuntuProvider -Mapping $ubuntu -PackageId $packageId
+        $ubuntuProvider = Convert-UbuntuProvider -Mapping $ubuntu -PackageId $packageId -KnownPrerequisites $knownUbuntuPrerequisites -PrerequisitesById $ubuntuPrerequisitesById
         if ($null -ne $ubuntuProvider) { $providers.ubuntu = @($ubuntuProvider) }
     }
 
@@ -318,6 +387,7 @@ foreach ($property in $profileProperties) {
 
 $packageCatalogV3 = [ordered]@{
     schemaVersion = 3
+    prerequisites = $ubuntuPrerequisitesV3.ToArray()
     packages = $packagesV3.ToArray()
 }
 $profileCatalogV3 = [ordered]@{

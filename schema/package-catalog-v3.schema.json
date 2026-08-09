@@ -4,9 +4,14 @@
   "title": "COWebs.lb Developer Setup package catalog v3",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "packages"],
+  "required": ["schemaVersion", "prerequisites", "packages"],
   "properties": {
     "schemaVersion": { "const": 3 },
+    "prerequisites": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/prerequisite" }
+    },
     "packages": {
       "type": "array",
       "items": { "$ref": "#/$defs/package" }
@@ -51,12 +56,45 @@
           "uniqueItems": true,
           "items": { "enum": ["x86", "x64", "arm64"] }
         },
+        "prerequisiteIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/logicalId" }
+        },
         "detection": { "$ref": "#/$defs/detection" },
         "installOptions": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
         },
         "estimate": { "$ref": "#/$defs/estimate" }
+      }
+    },
+    "prerequisite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "platform", "type", "architectures", "keyringUrl", "keyringSha256", "keyringPath", "repositoryBaseUrl", "repositorySuite", "repositoryComponents", "sourcesListPath"],
+      "properties": {
+        "id": { "$ref": "#/$defs/logicalId" },
+        "platform": { "const": "ubuntu" },
+        "type": { "const": "apt-repository" },
+        "architectures": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["x86", "x64", "arm64"] }
+        },
+        "keyringUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "keyringSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "keyringPath": { "type": "string", "pattern": "^/etc/apt/keyrings/[A-Za-z0-9._-]+$" },
+        "repositoryBaseUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "repositorySuite": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+        "repositoryComponents": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" }
+        },
+        "sourcesListPath": { "type": "string", "pattern": "^/etc/apt/sources.list.d/[A-Za-z0-9._-]+\\.list$" }
       }
     },
     "providerList": {
