@@ -1,11 +1,11 @@
 [CmdletBinding()]
 param(
-    [string]$Version = '6.2.0',
+    [string]$Version = '6.3.0-dev',
     [string]$OutputDirectory
 )
 
 $ErrorActionPreference = 'Stop'
-$publishedVersions = @('6.0.0', '6.1.0')
+$publishedVersions = @('6.0.0', '6.1.0', '6.2.0')
 if ($Version -in $publishedVersions) {
     throw "Version $Version is already published and immutable. Check out its release tag to reproduce it, or build a new version."
 }

@@ -6,18 +6,20 @@
 ./scripts/build-release.ps1
 ```
 
-The v6.2.0 release source produces `dist/cowebs-developer-setup-v6.2.0.zip`. Published identities are immutable: the builder refuses `6.0.0` and `6.1.0` from newer source. After publication, check out the release tag to reproduce v6.2.0; development on `main` must advance to the next prerelease identity.
+The current branch defaults to the next prerelease identity and produces `dist/cowebs-developer-setup-v6.3.0-dev.zip`. Published identities are immutable: the builder refuses `6.0.0`, `6.1.0`, and `6.2.0` from newer source. To reproduce a published asset, check out its release tag.
 
-## Version 6.2.0 release candidate
+## Published release
 
-The release candidate contains these two assets:
+Version 6.2.0 is published at `https://github.com/cowebsLB/cowebs-developer-setup/releases/tag/v6.2.0` from source commit `19fbf0effce030edfc91987debd5090975f918cd`.
+
+Published assets:
 
 - `master-setup.bat`
 - `cowebs-developer-setup-v6.2.0.zip`
 
-The candidate ZIP SHA-256 is `EEE8EAEBC2328E922F34B18C727A6F1408D4A586BE890B87764CAA22E8BD26B3`. The candidate BAT SHA-256 is `32903AE82D5AE228A0B2F7EFD7BFFDB9FE0790E95F0C604069BADE37388FBFD1`.
+The public ZIP SHA-256 is `EEE8EAEBC2328E922F34B18C727A6F1408D4A586BE890B87764CAA22E8BD26B3`. The public BAT SHA-256 is `32903AE82D5AE228A0B2F7EFD7BFFDB9FE0790E95F0C604069BADE37388FBFD1`.
 
-Publication evidence, source commit, GitHub Actions run, public asset digests, and the downloaded public Everything dry-run are recorded after the release is published and independently downloaded.
+GitHub Actions validation run `31326261752` passed against the release source commit. GitHub's recorded SHA-256 digests match the local assets, and independently downloaded public assets reproduced both hashes. The downloaded public BAT completed an Everything dry-run with 55 planned packages and zero failures.
 
 ## Release procedure
 

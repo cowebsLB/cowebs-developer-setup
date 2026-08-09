@@ -29,7 +29,7 @@ The suite validates:
 - per-package confirmation ordering and `--non-interactive` propagation through bootstrap, elevation handoff, and engine invocation;
 - bootstrap version, release URL, checksum, branding, CRLF, and cleanup contract;
 - release ZIP creation;
-- release-tag artifact naming and rejection of older published immutable version identities;
+- prerelease-default artifact naming and rejection of all published immutable version identities;
 - checksum verification, extraction, repeated-pack handoff, final summary, and temporary deletion;
 - the complete bootstrap handoff with an intentionally restricted `PSModulePath` and no reliance on `Invoke-WebRequest`, `Get-FileHash`, or `Expand-Archive`;
 - required documentation.

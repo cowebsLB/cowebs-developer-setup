@@ -10,7 +10,7 @@ $restrictedModulePath = Join-Path $testOutput 'empty-modules'
 
 try {
     $artifact = & $buildScript -OutputDirectory $testOutput
-    if ($artifact.Version -ne '6.2.0') { throw "Release builds must use version 6.2.0, got '$($artifact.Version)'." }
+    if ($artifact.Version -ne '6.3.0-dev') { throw "Development builds must use the next prerelease version, got '$($artifact.Version)'." }
     $before = @()
     if (Test-Path -LiteralPath $tempRoot) { $before = @(Get-ChildItem -LiteralPath $tempRoot -Directory | Select-Object -ExpandProperty FullName) }
 

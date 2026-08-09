@@ -4,6 +4,10 @@ All notable changes follow semantic versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- Advanced development builds to `6.3.0-dev` and protected the published v6.2.0 identity from rebuilds on newer source.
+
 ## [6.2.0] - 2026-08-09
 
 ### Added
