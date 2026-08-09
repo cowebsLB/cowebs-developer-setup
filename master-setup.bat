@@ -15,6 +15,7 @@ set "PROFILE="
 set "DRY_RUN=0"
 set "NO_CONFIG=0"
 set "NO_RESTART=0"
+set "NON_INTERACTIVE=0"
 set "KEEP_TEMP=0"
 set "ESSENTIALS_ONLY=0"
 set "LIST_PACKS=0"
@@ -92,6 +93,7 @@ if defined PROFILE set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -Profile !PROFILE!"
 if "!DRY_RUN!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -DryRun"
 if "!NO_CONFIG!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -NoConfig"
 if "!NO_RESTART!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -NoRestart"
+if "!NON_INTERACTIVE!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -NonInteractive"
 if "!ESSENTIALS_ONLY!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -EssentialsOnly"
 if "!LIST_PACKS!"=="1" set "ENGINE_ARGUMENTS=!ENGINE_ARGUMENTS! -ListPacks"
 
@@ -180,6 +182,11 @@ if /I "%~1"=="--no-restart" (
     shift
     goto ParseNextArgument
 )
+if /I "%~1"=="--non-interactive" (
+    set "NON_INTERACTIVE=1"
+    shift
+    goto ParseNextArgument
+)
 if /I "%~1"=="--keep-temp" (
     set "KEEP_TEMP=1"
     shift
@@ -228,6 +235,7 @@ set "COWEBS_SETUP_RELAUNCH_ARGUMENTS="
 if defined PROFILE set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --profile !PROFILE!"
 if "!NO_CONFIG!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --no-config"
 if "!NO_RESTART!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --no-restart"
+if "!NON_INTERACTIVE!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --non-interactive"
 if "!KEEP_TEMP!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --keep-temp"
 if "!ESSENTIALS_ONLY!"=="1" set "COWEBS_SETUP_RELAUNCH_ARGUMENTS=!COWEBS_SETUP_RELAUNCH_ARGUMENTS! --essentials-only"
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command ^
@@ -257,6 +265,8 @@ echo   --list-packs   List available use-case packs without installing anything.
 echo   --dry-run      Preview without installing, configuring, creating folders, or restarting.
 echo   --no-config    Skip optional post-install configuration.
 echo   --no-restart   Suppress the Windows restart prompt.
+echo   --non-interactive
+echo                  Install needed packages without per-package confirmation prompts.
 echo   --keep-temp    Retain the verified temporary payload for debugging.
 echo   --version      Print the bootstrap version.
 echo   --help, -h     Show this help without downloading the payload.

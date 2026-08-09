@@ -24,6 +24,8 @@ master-setup.bat --profile devops --pack cloud-azure --dry-run
 
 Recommended packs are included by default. Use `--essentials-only` when you want just the shared core and the selected role's direct packages, then add only the packs you need. Repeat `--pack NAME` for multiple packs.
 
+Unreleased builds ask for confirmation only when a requested package is not already installed. Press Enter to install it, type `>skip` (also `skip` or `s`) to omit it, or pass `--non-interactive` to install every needed package without per-package prompts.
+
 Administrator mode is not required for previews. `--help`, `--version`, `--list-packs`, and `--dry-run` run without an elevation request. A real installation checks its Windows token and requests Administrator approval once before downloading or installing the payload. The elevated process then owns the complete setup, so ordinary Winget child processes inherit that access token instead of requesting elevation package by package.
 
 The output reports `Privilege: Administrator` for a real installation or `Privilege: Standard user (preview only)` for an unelevated dry-run. A vendor installer can still display its own license, driver, account, or configuration interface; the bootstrap does not disable UAC or attempt to suppress security boundaries outside its process tree.

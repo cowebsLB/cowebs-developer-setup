@@ -59,12 +59,16 @@ See the [package and profile guide](docs/package-selection.md) for the complete 
 - `src/windows/setup.ps1` implements the Winget adapter and Windows configuration.
 - `src/macos/` and `src/linux/` are reserved for future adapters that consume the same logical keys.
 
+The unreleased modernization now includes a dependency-free Go CLI (`cowebs-setup`) behind provider-aware schema-v3 contracts, a deterministic v2-to-v3 compatibility compiler, native Windows adapter, one-shot privileged broker, structured JSONL journal with atomic state snapshots, and system diagnostic engine (`doctor`). Its independent parity harness matches the production PowerShell planner's exact Windows package order, selected packs, conflicts, and estimates for every profile in default and essentials-only modes. Schema v2 and the released Windows engine remain authoritative until the separately gated runtime cutover. See the [architecture](docs/architecture.md) and [ADRs](docs/adr/README.md).
+
+For unattended use in a future release built from the unreleased source, pass `--non-interactive` to suppress per-package confirmation. Interactive runs check whether a package is already installed before asking for confirmation, and accept `>skip`, `skip`, or `s` to omit a needed package.
+
 ## Safety
 
 - Tagged release asset instead of mutable `main` content.
 - SHA-256 verification before extraction or execution.
 - Bootstrap download, hashing, and extraction do not depend on PowerShell module auto-loading.
-- Exact Winget package IDs, all live-checked for v6.0.0.
+- Exact Winget package IDs, all live-checked for v6.1.0.
 - Pre-install dependency and conflict resolution.
 - One initial UAC request for a complete real installation, with visible privilege reporting and no UAC-policy bypass.
 - Explicit authorized-lab confirmation for Kali WSL.

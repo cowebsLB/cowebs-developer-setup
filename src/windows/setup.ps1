@@ -7,7 +7,8 @@ param(
     [switch]$ListPacks,
     [switch]$DryRun,
     [switch]$NoConfig,
-    [switch]$NoRestart
+    [switch]$NoRestart,
+    [switch]$NonInteractive
 )
 
 $ErrorActionPreference = 'Stop'
@@ -282,6 +283,8 @@ function Install-WindowsPackage {
     if (-not $windows -or -not $windows.wingetId) { throw "Package '$($Package.key)' has no Windows Winget mapping." }
     $id = [string]$windows.wingetId
     Write-Host "`n--- $($Package.name) ---" -ForegroundColor Cyan
+    $description = Get-OptionalPropertyValue $Package 'description'
+    if ($description) { Write-Host "Description: $description" -ForegroundColor DarkGray }
 
     $conditions = Get-OptionalPropertyValue $Package 'conditions'
     if ($conditions) {
@@ -303,6 +306,16 @@ function Install-WindowsPackage {
         $script:SkippedCount++
         Write-SetupLog "SKIPPED $($Package.name) [$id]."
         return
+    }
+
+    if (-not $NonInteractive) {
+        $skipResponse = Read-Host "Install $($Package.name)? [Press Enter to install, or type '>skip' to skip]"
+        if ($skipResponse -match '^(?i:>skip|skip|s)$') {
+            Write-Status -Label 'SKIPPED' -Message "$($Package.name) skipped by user request (via >skip)."
+            $script:SkippedCount++
+            Write-SetupLog "SKIPPED $($Package.name) [$id] via >skip."
+            return
+        }
     }
 
     Write-Status -Label 'INSTALLING' -Message $Package.name

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cowebslb.com/developer-setup/profile-catalog-v3.schema.json",
+  "title": "COWebs.lb Developer Setup profile catalog v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "corePackageIds", "packs", "profiles"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "corePackageIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/logicalId" }
+    },
+    "packs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/pack" }
+    },
+    "profiles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/profile" }
+    }
+  },
+  "$defs": {
+    "logicalId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "idList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/logicalId" }
+    },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "packageIds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/logicalId" },
+        "name": { "type": "string", "minLength": 1 },
+        "packageIds": { "$ref": "#/$defs/idList" }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "extends", "packageIds", "recommendedPackIds", "optionalPackIds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/logicalId" },
+        "name": { "type": "string", "minLength": 1 },
+        "extends": { "$ref": "#/$defs/idList" },
+        "packageIds": { "$ref": "#/$defs/idList" },
+        "recommendedPackIds": { "$ref": "#/$defs/idList" },
+        "optionalPackIds": { "$ref": "#/$defs/idList" }
+      }
+    }
+  }
+}

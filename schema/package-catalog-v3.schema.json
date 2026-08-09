@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cowebslb.com/developer-setup/package-catalog-v3.schema.json",
+  "title": "COWebs.lb Developer Setup package catalog v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "packages"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "packages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/package" }
+    }
+  },
+  "$defs": {
+    "logicalId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["downloadMbMin", "downloadMbMax", "installMinutesMin", "installMinutesMax"],
+      "properties": {
+        "downloadMbMin": { "type": "number", "minimum": 0 },
+        "downloadMbMax": { "type": "number", "minimum": 0 },
+        "installMinutesMin": { "type": "number", "minimum": 0 },
+        "installMinutesMax": { "type": "number", "minimum": 0 }
+      }
+    },
+    "detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["manager-native"] }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manager", "packageId", "privilege", "scope", "detection", "installOptions", "estimate"],
+      "properties": {
+        "manager": { "enum": ["winget", "brew", "brew-cask", "apt-get", "dnf", "snap", "flatpak"] },
+        "packageId": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "privilege": { "enum": ["user", "elevated"] },
+        "scope": { "enum": ["auto", "user", "machine"] },
+        "architectures": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["x86", "x64", "arm64"] }
+        },
+        "detection": { "$ref": "#/$defs/detection" },
+        "installOptions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "estimate": { "$ref": "#/$defs/estimate" }
+      }
+    },
+    "providerList": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/provider" }
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "windows": { "$ref": "#/$defs/providerList" },
+        "macos": { "$ref": "#/$defs/providerList" },
+        "ubuntu": { "$ref": "#/$defs/providerList" },
+        "fedora": { "$ref": "#/$defs/providerList" }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "diskHeavy": { "type": "boolean" },
+        "restartMayBeRequired": { "type": "boolean" },
+        "authorizedLabOnly": { "type": "boolean" },
+        "hardwareRecommended": { "type": "string", "minLength": 1 }
+      }
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "description", "tier", "categories", "license", "dependencies", "conflicts", "configurationIntents", "providers"],
+      "properties": {
+        "id": { "$ref": "#/$defs/logicalId" },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "tier": { "enum": ["core", "recommended", "optional"] },
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/logicalId" }
+        },
+        "license": { "enum": ["open-source", "source-available", "vendor-terms"] },
+        "dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/logicalId" }
+        },
+        "conflicts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/logicalId" }
+        },
+        "conditions": { "$ref": "#/$defs/conditions" },
+        "configurationIntents": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/logicalId" }
+        },
+        "providers": { "$ref": "#/$defs/providers" }
+      }
+    }
+  }
+}

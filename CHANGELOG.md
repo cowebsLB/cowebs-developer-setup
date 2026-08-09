@@ -2,6 +2,48 @@
 
 All notable changes follow semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Added structured execution journal and state snapshot module (`internal/journal`) for tracking execution events and enabling atomic state recovery.
+- Added system diagnostic engine (`internal/doctor`) for platform compatibility, package manager availability, workspace directory verification, and catalog integrity checks.
+- Added `cowebs-setup status`, `cowebs-setup resume`, and `cowebs-setup doctor` CLI subcommands with `--json` output format support.
+- Added Windows provider adapter (`internal/adapter/windows`) for native `winget` detection, argument construction, and execution.
+- Added one-shot privileged broker (`internal/broker`) enforcing catalog digest verification, privilege scope isolation, option allowlisting, and structured `execution-event-v1` JSON stream emissions.
+- Added `cowebs-setup broker` CLI command to execute validated execution plans via the privileged broker engine.
+- Added comprehensive package descriptions to all 86 package definitions in the catalog detailing function, operation, and use case.
+- Added interactive package skipping with `>skip` prompt after installed-package detection, backed by `-NonInteractive` and the bootstrap `--non-interactive` option for automated runs.
+- Added JSON Schema draft 2020-12 contracts for provider-aware package catalog v3, profile catalog v3, typed execution plans, structured execution events, and multi-platform release manifests.
+- Added a deterministic Windows PowerShell 5-compatible schema-v2 to schema-v3 compiler that preserves the complete v6.1 catalog and profile contract.
+- Added accepted architecture decisions for a staged Go core, least-privilege broker, provider-aware adapters, and resumable structured execution state.
+- Added a dependency-free Go 1.26.5 catalog loader, deterministic shadow planner, and JSON CLI that emit typed detection, installation, and configuration operations without changing the production runtime.
+
+### Security
+
+- Made the broker regenerate and require the exact canonical plan from verified catalogs before any operation, reject unknown plan fields, require an elevated Windows token for real execution, and keep raw installer output out of structured journals.
+- Made resume fail closed on corrupt, structurally incomplete, or plan/catalog-mismatched state, and made journal event parsing enforce the schema-v1 vocabulary and monotonic sequence contract.
+- Prohibited arbitrary command and shell fields from future execution plans and required explicit provider privilege, scope, native detection, and typed installer options.
+- Made ambiguous quoted legacy overrides fail migration instead of applying lossy tokenization.
+- Made the Go loader reject unknown JSON fields, trailing values, invalid references, asymmetric conflicts, unsupported targets, and incomplete provider mappings before planning.
+
+### Fixed
+
+- Fixed the release builder defaulting to the already-published v6.1.0 identity; unreleased builds now default to `6.2.0-dev` and reject published immutable versions.
+- Fixed the broker installing packages even after native detection reported them as already installed.
+- Fixed process-launch failures being misclassified as successful installed-package detection.
+- Fixed resume suppressing new journal events, changing session identity, ignoring state-load failures, and accepting state from another plan or catalog.
+- Fixed journal sequence reuse after reopening a session and made snapshot writes flush temporary state before atomic replacement.
+- Fixed per-package prompts appearing before the engine checked whether a package was already installed.
+- Fixed diagnostic status vocabulary and partial catalog-path handling.
+
+### Testing
+
+- Added deterministic compilation, complete semantic parity, schema-contract, unknown-reference, and unsafe-override regression coverage without changing the production v6.1 runtime.
+- Added Go unit tests and independent black-box parity coverage for all nine profiles in default and essentials-only modes, explicit multi-pack composition, conflict rejection, exact estimates, operation counts, and byte-identical output.
+- Added canonical-plan tamper rejection, process-start failure, installed-package skip, durable resume, sequence continuity, mismatched-state, unknown-field, and non-interactive bootstrap regression coverage.
+- Updated Windows CI to Node 24-compatible `actions/checkout@v7` and `actions/setup-go@v7`, pinned through `go.mod`.
+
 ## [6.1.0] - 2026-08-07
 
 ### Added

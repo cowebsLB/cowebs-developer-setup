@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cowebslb.com/developer-setup/execution-event-v1.schema.json",
+  "title": "COWebs.lb Developer Setup execution event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sessionId", "sequence", "timestamp", "type", "status", "message"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "type": { "enum": ["session", "plan", "operation", "configuration", "restart", "summary", "diagnostic"] },
+    "status": { "enum": ["planned", "started", "succeeded", "skipped", "failed", "blocked", "retryable", "cancelled"] },
+    "operationId": { "type": "string", "minLength": 1 },
+    "logicalPackageId": { "type": "string", "minLength": 1 },
+    "provider": { "type": "string", "minLength": 1 },
+    "exitCode": { "type": "integer" },
+    "message": { "type": "string", "minLength": 1 },
+    "rebootRequired": { "type": "boolean" },
+    "retryable": { "type": "boolean" }
+  }
+}

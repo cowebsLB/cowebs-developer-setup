@@ -13,7 +13,11 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
       - name: Run safe setup tests
         shell: pwsh
         run: ./tests/run-tests.ps1

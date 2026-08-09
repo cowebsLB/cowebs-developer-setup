@@ -1,5 +1,7 @@
 # Architecture
 
+## Production architecture
+
 The repository separates user-facing bootstrapping, shared intent, and operating-system implementation.
 
 ```text
@@ -30,3 +32,37 @@ Windows estimates are catalog-driven. The manifest supplies conservative fallbac
 ## Release layer
 
 `scripts/build-release.ps1` produces the minimal runtime ZIP. Tests validate manifests and every profile directly, then simulate the complete BAT-to-ZIP-to-engine-to-cleanup flow without installing software.
+
+## Architecture modernization implementation
+
+The unreleased redesign foundation introduces versioned contracts without changing the v6.1 runtime:
+
+- `schema/package-catalog-v3.schema.json` separates logical package intent from typed platform-provider mappings.
+- `schema/profile-catalog-v3.schema.json` gives packs and profiles explicit IDs while retaining logical references.
+- `schema/execution-plan-v1.schema.json` defines a typed plan that cannot carry arbitrary command or shell fields.
+- `schema/execution-event-v1.schema.json` defines the future console, journal, broker, and JSON-output event vocabulary.
+- `schema/release-manifest-v1.schema.json` defines immutable multi-platform artifact metadata and hashes.
+- `scripts/convert-catalog-v2-to-v3.ps1` compiles the production v2 manifests into deterministic shadow-planner inputs.
+- `internal/catalog` strictly loads and cross-validates the generated catalogs.
+- `internal/planner` resolves profile inheritance, packs, dependency order, conflicts, providers, estimates, and typed operations without invoking a package manager.
+- `internal/adapter/windows` implements native Winget detection, argument construction, and execution without invoking command shells.
+- `internal/broker` regenerates the canonical plan from verified catalogs, requires elevation for real execution, directly invokes the allowlisted Windows provider, skips installs already satisfied by detection, and emits redacted `execution-event-v1` events.
+- `internal/journal` handles strict schema-v1 JSONL event persistence, monotonic sequences, flushed atomic state snapshots, plan-bound recovery, and fail-closed resume validation.
+- `internal/doctor` executes diagnostic checks across OS compatibility, package manager availability, workspace directories, and catalog integrity.
+- `cmd/cowebs-setup` exposes the core via deterministic development CLI subcommands: `plan`, `broker`, `status`, `resume`, and `doctor` (with `--json` support).
+
+The shadow planner has exact black-box parity with the production PowerShell planner. The provider adapter, privileged broker, journal, resume/status flow, and diagnostic CLI have unit and CLI integration coverage, including the principal tamper and recovery boundaries; this is not a claim of exhaustive security proof or real-install validation. Schema v2 remains authoritative for `src/windows/setup.ps1` and the public release; neither the Go binary nor schema-v3 catalogs are included in that runtime ZIP.
+
+## Target architecture
+
+```text
+generated BAT / Unix bootstrap
+    -> download and verify while unelevated
+        -> Go controller: inventory -> resolve -> plan -> consent
+            -> user-scope executor
+            -> one elevated typed broker for machine operations
+                -> Winget / Brew / APT / DNF / Snap / Flatpak adapters
+        -> structured events, JSONL journal, atomic resume state
+```
+
+The accepted decisions and compatibility constraints are recorded in [docs/adr](adr/README.md). Runtime cutover remains blocked on disposable-VM parity and real-install validation.

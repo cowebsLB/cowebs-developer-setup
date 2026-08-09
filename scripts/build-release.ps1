@@ -1,10 +1,17 @@
 [CmdletBinding()]
 param(
-    [string]$Version = '6.1.0',
+    [string]$Version = '6.2.0-dev',
     [string]$OutputDirectory
 )
 
 $ErrorActionPreference = 'Stop'
+$publishedVersions = @('6.0.0', '6.1.0')
+if ($Version -in $publishedVersions) {
+    throw "Version $Version is already published and immutable. Check out its release tag to reproduce it, or build a new version."
+}
+if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+    throw "Version '$Version' is not a valid semantic version."
+}
 $projectRoot = Split-Path -Parent $PSScriptRoot
 if (-not $OutputDirectory) {
     $OutputDirectory = Join-Path $projectRoot 'dist'

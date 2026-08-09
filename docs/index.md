@@ -1,12 +1,14 @@
 # Documentation
 
 - [Architecture](architecture.md)
+- [Architecture Decision Records](adr/README.md)
 - [Installation](installation.md)
 - [Troubleshooting](troubleshooting.md)
 - [Features](features.md)
 - [Package and profile selection](package-selection.md)
 - [Roadmap](roadmap.md)
 - [CLI API](API.md)
+- [Go module](../go.mod)
 - [Database](Database.md)
 - [Security](Security.md)
 - [Testing](Testing.md)

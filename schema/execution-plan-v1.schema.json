@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cowebslb.com/developer-setup/execution-plan-v1.schema.json",
+  "title": "COWebs.lb Developer Setup execution plan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "planId", "catalogSha256", "platform", "architecture", "profileId", "packIds", "estimate", "operations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "planId": { "type": "string", "pattern": "^[0-9a-fA-F-]{36}$" },
+    "catalogSha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "platform": { "enum": ["windows", "macos", "ubuntu", "fedora"] },
+    "architecture": { "enum": ["x86", "x64", "arm64"] },
+    "profileId": { "type": "string", "minLength": 1 },
+    "packIds": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["downloadMbMin", "downloadMbMax", "installMinutesMin", "installMinutesMax"],
+      "properties": {
+        "downloadMbMin": { "type": "number", "minimum": 0 },
+        "downloadMbMax": { "type": "number", "minimum": 0 },
+        "installMinutesMin": { "type": "number", "minimum": 0 },
+        "installMinutesMax": { "type": "number", "minimum": 0 }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "logicalPackageId", "privilege", "dependsOn"],
+        "allOf": [
+          {
+            "if": {
+              "properties": { "kind": { "enum": ["detect", "install"] } },
+              "required": ["kind"]
+            },
+            "then": { "required": ["manager", "packageId"] }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "const": "configure" } },
+              "required": ["kind"]
+            },
+            "then": { "required": ["configurationIntent"] }
+          }
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["detect", "install", "configure", "restart-check"] },
+          "logicalPackageId": { "type": "string", "minLength": 1 },
+          "manager": { "enum": ["winget", "brew", "brew-cask", "apt-get", "dnf", "snap", "flatpak"] },
+          "packageId": { "type": "string", "minLength": 1 },
+          "source": { "type": "string", "minLength": 1 },
+          "scope": { "enum": ["auto", "user", "machine"] },
+          "installOptions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "configurationIntent": { "type": "string", "minLength": 1 },
+          "privilege": { "enum": ["user", "elevated"] },
+          "dependsOn": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  }
+}

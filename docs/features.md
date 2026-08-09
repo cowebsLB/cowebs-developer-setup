@@ -32,3 +32,20 @@
 | macOS | Planned | Homebrew |
 | Ubuntu | Planned | APT, Snap, or Flatpak where appropriate |
 | Fedora | Planned | DNF or Flatpak where appropriate |
+
+## Unreleased architecture modernization
+
+- Detailed package descriptions detailing function, operation, and use case for all catalog packages
+- Interactive package skipping after installed-package detection, with `>skip`/`skip`/`s` responses and a bootstrap `--non-interactive` override
+- Provider-aware package and profile schemas for the future cross-platform core
+- Typed execution-plan, event, and release-manifest contracts
+- Deterministic schema-v2 to schema-v3 compatibility compiler
+- Accepted ADRs for the Go controller, least-privilege broker, provider adapters, and resumable event journal
+- Strict dependency-free Go catalog loader and deterministic shadow planner
+- Windows provider adapter (`internal/adapter/windows`) with native Winget detection and direct binary execution
+- One-shot privileged broker (`internal/broker`) with canonical-plan reconstruction, catalog digest matching, real-run elevation enforcement, direct provider execution, installed-package skipping, and redacted event streams
+- Strict structured execution journal and flushed atomic state snapshot engine (`internal/journal`) with monotonic sequences and plan-bound fail-closed resumption
+- System diagnostic engine (`internal/doctor`) for platform, package manager, workspace directory, and catalog integrity checks
+- `cowebs-setup` CLI subcommands (`plan`, `broker`, `status`, `resume`, `doctor`) with `--json` output format support
+- Exact black-box parity with the PowerShell planner across every profile and selection mode
+- No change to the v6.1 Windows runtime or public CLI

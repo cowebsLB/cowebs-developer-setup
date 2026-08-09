@@ -6,6 +6,7 @@ $enginePath = Join-Path $projectRoot 'src\windows\setup.ps1'
 $packagesPath = Join-Path $projectRoot 'config\packages.json'
 $profilesPath = Join-Path $projectRoot 'config\profiles.json'
 $readmePath = Join-Path $projectRoot 'README.md'
+$buildScriptPath = Join-Path $projectRoot 'scripts\build-release.ps1'
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Assert-True {
@@ -18,6 +19,7 @@ $engineSource = [IO.File]::ReadAllText($enginePath, [Text.UTF8Encoding]::new($fa
 $packages = Get-Content -LiteralPath $packagesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $profiles = Get-Content -LiteralPath $profilesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $readme = Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8
+$buildSource = Get-Content -LiteralPath $buildScriptPath -Raw -Encoding UTF8
 
 Assert-True ($bootstrap -match 'set "VERSION=6\.1\.0"') 'Bootstrap version 6.1.0 is missing.'
 Assert-True ($bootstrap -match 'cowebsLB/cowebs-developer-setup') 'Pinned GitHub repository is missing.'
@@ -38,6 +40,9 @@ Assert-True ($bootstrap -match 'COWEBS_SETUP_PACKS') 'Environment-based pack han
 Assert-True ($bootstrap -match 'WindowsPrincipal') 'Administrator-token detection is missing from the bootstrap.'
 Assert-True ($bootstrap -match "Verb='RunAs'") 'One-time RunAs elevation is missing from the bootstrap.'
 Assert-True ($bootstrap -match 'COWEBS_SETUP_RELAUNCH_PACKS') 'Safe pack preservation across elevation is missing.'
+Assert-True ($bootstrap -match '--non-interactive') 'Non-interactive bootstrap option is missing.'
+Assert-True ($bootstrap -match 'ENGINE_ARGUMENTS=.*-NonInteractive') 'Non-interactive option is not passed to the Windows engine.'
+Assert-True ($bootstrap -match 'RELAUNCH_ARGUMENTS=.*--non-interactive') 'Non-interactive option is not preserved across elevation.'
 Assert-True ($bootstrap -match 'if "!DRY_RUN!"=="0"') 'Dry-run elevation bypass is missing.'
 Assert-True (-not [regex]::IsMatch($bootstrap, '(?<!\r)\n')) 'master-setup.bat must use Windows CRLF line endings.'
 Assert-True ($readme -match 'actions/workflows/validate\.yml/badge\.svg') 'README validation badge is missing.'
@@ -45,6 +50,8 @@ Assert-True ($readme -match 'img\.shields\.io/github/v/release') 'README release
 Assert-True ($readme -match 'license-MIT') 'README license badge is missing.'
 Assert-True ($readme -match 'platform-Windows') 'README platform badge is missing.'
 Assert-True ($readme -match 'manifest-v2') 'README schema badge is missing.'
+Assert-True ($buildSource -match "Version = '6\.2\.0-dev'") 'Release builder must default to the next prerelease version.'
+Assert-True ($buildSource -match "publishedVersions = @\('6\.0\.0', '6\.1\.0'\)") 'Release builder must protect published immutable versions.'
 Assert-True ($engineSource -match "INSTALLING\s*=\s*'Cyan'") 'INSTALLING status must be cyan.'
 Assert-True ($engineSource -match "SUCCESS\s*=\s*'Green'") 'SUCCESS status must be green.'
 Assert-True ($engineSource -match "SKIPPED\s*=\s*'Yellow'") 'SKIPPED status must be yellow.'
@@ -53,6 +60,10 @@ Assert-True ($engineSource -match 'Add-ConfiguredItem') 'Configured-component tr
 Assert-True ($engineSource -match 'Add-ConfigurationFailure') 'Configuration-failure tracking is missing.'
 Assert-True ($engineSource -match 'function Test-IsAdministrator') 'Engine administrator check is missing.'
 Assert-True ($engineSource -match "exit 7") 'Engine must reject an unelevated real installation.'
+Assert-True ($engineSource -match '\[switch\]\$NonInteractive') 'Engine non-interactive switch is missing.'
+$detectIndex = $engineSource.IndexOf('& winget list --id $id')
+$promptIndex = $engineSource.IndexOf('$skipResponse = Read-Host')
+Assert-True ($detectIndex -ge 0 -and $promptIndex -gt $detectIndex) 'Per-package confirmation must occur only after installed-package detection.'
 
 $packageKeys = @($packages.packages | ForEach-Object { $_.key })
 $wingetIds = @($packages.packages | ForEach-Object { $_.platforms.windows.wingetId })
@@ -76,6 +87,7 @@ foreach ($overrideProperty in @($estimatePolicy.overrides.PSObject.Properties)) 
 }
 foreach ($package in $packages.packages) {
     Assert-True (-not [string]::IsNullOrWhiteSpace($package.name)) "Package '$($package.key)' has no display name."
+    Assert-True (-not [string]::IsNullOrWhiteSpace($package.description)) "Package '$($package.key)' has no description."
     Assert-True (@('core', 'recommended', 'optional') -contains $package.tier) "Package '$($package.key)' has invalid tier '$($package.tier)'."
     Assert-True (@($package.categories).Count -gt 0) "Package '$($package.key)' has no category."
     Assert-True (@('winget') -contains $package.installStrategy) "Package '$($package.key)' has unsupported install strategy '$($package.installStrategy)'."
