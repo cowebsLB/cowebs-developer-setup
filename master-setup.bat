@@ -1,15 +1,15 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-title COWebs.lb Master Developer Environment Setup v6.1.0
+title COWebs.lb Master Developer Environment Setup v6.2.0
 color 0B
 for /f "tokens=2 delims=:" %%C in ('chcp') do set "ORIGINAL_CODE_PAGE=%%C"
 chcp 65001 >nul
 
-set "VERSION=6.1.0"
+set "VERSION=6.2.0"
 set "REPOSITORY=cowebsLB/cowebs-developer-setup"
-set "ASSET_NAME=cowebs-developer-setup-v6.1.0.zip"
+set "ASSET_NAME=cowebs-developer-setup-v6.2.0.zip"
 set "DOWNLOAD_URL=https://github.com/%REPOSITORY%/releases/download/v%VERSION%/%ASSET_NAME%"
-set "EXPECTED_SHA256=0CE008E61DAE7EA26989E6C6528A251D4BE825DEDFFFB286933BB2F9BB00AE46"
+set "EXPECTED_SHA256=EEE8EAEBC2328E922F34B18C727A6F1408D4A586BE890B87764CAA22E8BD26B3"
 if defined COWEBS_SETUP_BUNDLE_PATH if defined COWEBS_SETUP_BUNDLE_SHA256 set "EXPECTED_SHA256=%COWEBS_SETUP_BUNDLE_SHA256%"
 set "PROFILE="
 set "DRY_RUN=0"

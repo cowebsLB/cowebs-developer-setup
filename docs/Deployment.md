@@ -6,20 +6,18 @@
 ./scripts/build-release.ps1
 ```
 
-The current branch defaults to the next prerelease identity and produces `dist/cowebs-developer-setup-v6.2.0-dev.zip`. Published identities are immutable: the builder refuses `6.0.0` and `6.1.0` from newer source. To reproduce a published asset, check out its release tag. The published v6.1.0 hash remains `0CE008E61DAE7EA26989E6C6528A251D4BE825DEDFFFB286933BB2F9BB00AE46`.
+The v6.2.0 release source produces `dist/cowebs-developer-setup-v6.2.0.zip`. Published identities are immutable: the builder refuses `6.0.0` and `6.1.0` from newer source. After publication, check out the release tag to reproduce v6.2.0; development on `main` must advance to the next prerelease identity.
 
-## Published release
+## Version 6.2.0 release candidate
 
-Version 6.1.0 is published at `https://github.com/cowebsLB/cowebs-developer-setup/releases/tag/v6.1.0` from source commit `5f78f55351baf963abdf969229363344c6d305a6`.
-
-Published assets:
+The release candidate contains these two assets:
 
 - `master-setup.bat`
-- `cowebs-developer-setup-v6.1.0.zip`
+- `cowebs-developer-setup-v6.2.0.zip`
 
-The public ZIP SHA-256 is `0CE008E61DAE7EA26989E6C6528A251D4BE825DEDFFFB286933BB2F9BB00AE46`. The public BAT SHA-256 is `2B1233D1A83CEFAF0E160474F29A2953B039C147F4676F82AB06140A95A933BB`.
+The candidate ZIP SHA-256 is `EEE8EAEBC2328E922F34B18C727A6F1408D4A586BE890B87764CAA22E8BD26B3`. The candidate BAT SHA-256 is `32903AE82D5AE228A0B2F7EFD7BFFDB9FE0790E95F0C604069BADE37388FBFD1`.
 
-The public latest-release BAT downloaded and completed an Everything dry-run with 55 planned packages and zero failures. GitHub Actions validation run `31130931504` passed against the source commit. The push-triggered run did not appear, so the same checked-in workflow was dispatched manually and completed successfully.
+Publication evidence, source commit, GitHub Actions run, public asset digests, and the downloaded public Everything dry-run are recorded after the release is published and independently downloaded.
 
 ## Release procedure
 
@@ -42,4 +40,4 @@ Future platform releases should add their runtime files to the release bundle wi
 
 ## Architecture-migration artifacts
 
-Schema-v3 catalogs produced by `scripts/convert-catalog-v2-to-v3.ps1` and the Go CLI under `cmd/cowebs-setup` are development artifacts and are intentionally excluded from the v6.1 release ZIP. Planner parity is proven, and the Windows adapter, canonical-plan broker, journal, resume, status, and doctor paths have non-installing coverage; none has replaced the production engine. A future release pipeline will generate platform binaries, a versioned release manifest, checksums, signatures, and software-bill-of-materials files from one version source. That pipeline must not replace the current pinned BAT until a controller performs the one-shot `RunAs` handoff and real Windows installs pass in a disposable VM.
+Schema-v3 catalogs produced by `scripts/convert-catalog-v2-to-v3.ps1` and the Go CLI under `cmd/cowebs-setup` are development artifacts and are intentionally excluded from the v6.2 release ZIP. Planner parity is proven, and the Windows adapter, canonical-plan broker, journal, resume, status, and doctor paths have non-installing coverage; none has replaced the production engine. A future release pipeline will generate platform binaries, a versioned release manifest, checksums, signatures, and software-bill-of-materials files from one version source. That pipeline must not replace the current pinned BAT until a controller performs the one-shot `RunAs` handoff and real Windows installs pass in a disposable VM.

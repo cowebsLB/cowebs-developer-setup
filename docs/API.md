@@ -35,7 +35,7 @@ The PowerShell engine also accepts `-PackNames`, `-EssentialsOnly`, and `-ListPa
 
 There is no network service API.
 
-## Unreleased architecture contracts
+## Development architecture contracts (source-only in v6.2.0)
 
 The `schema/` directory contains JSON Schema draft 2020-12 contracts for the future cross-platform core:
 
@@ -53,7 +53,7 @@ Compile the production schema-v2 manifests into deterministic migration artifact
 ./scripts/convert-catalog-v2-to-v3.ps1 -OutputDirectory .tmp/catalog-v3
 ```
 
-The compiler writes `package-catalog.v3.json` and `profile-catalog.v3.json`. It validates known references, symmetric conflicts, profile inheritance, current Winget mappings, and safely representable installer options. The generated files are development artifacts and are not consumed by v6.1.
+The compiler writes `package-catalog.v3.json` and `profile-catalog.v3.json`. It validates known references, symmetric conflicts, profile inheritance, current Winget mappings, and safely representable installer options. The generated files are development artifacts and are not consumed by the v6.2 runtime.
 
 ## Architecture modernization CLI (`cowebs-setup`)
 

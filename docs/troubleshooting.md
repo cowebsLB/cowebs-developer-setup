@@ -6,11 +6,11 @@ Install or update Microsoft App Installer, open a new terminal, and run `winget 
 
 ## The release payload cannot be downloaded
 
-Confirm that GitHub Releases is reachable and that v6.1.0 is published at the official `cowebsLB/cowebs-developer-setup` repository. The bootstrap intentionally does not fall back to `main`.
+Confirm that GitHub Releases is reachable and that v6.2.0 is published at the official `cowebsLB/cowebs-developer-setup` repository. The bootstrap intentionally does not fall back to `main`.
 
 ## Checksum mismatch
 
-Do not bypass the check. Delete the downloaded BAT and obtain a fresh copy from the official v6.1.0 release. A mismatch means the BAT and ZIP do not belong to the same release or the payload changed.
+Do not bypass the check. Delete the downloaded BAT and obtain a fresh copy from the official v6.2.0 release. A mismatch means the BAT and ZIP do not belong to the same release or the payload changed.
 
 ## GitHub Actions reports that Get-FileHash is unavailable
 

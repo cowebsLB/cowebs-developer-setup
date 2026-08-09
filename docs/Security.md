@@ -30,10 +30,10 @@ Schema-v2 dependencies and conflicts are resolved before Winget runs. The bootst
 - Catalog validation proves current Winget discovery, not that all 86 installers were executed on the active workstation.
 - Users should obtain the BAT only from the official GitHub release or COWebs.lb site.
 
-## Unreleased least-privilege implementation
+## Development least-privilege implementation
 
 The accepted redesign moves download, checksum verification, archive extraction, inventory, planning, and user configuration outside the elevated boundary. The shadow planner strictly rejects unknown catalog fields and emits only typed provider operations bound to a catalog digest. The development Windows broker reloads the verified catalogs, regenerates and requires an exact canonical plan, constructs Winget argument arrays without a shell, refuses real execution without an elevated Windows token, and rejects catalog or operation tampering before mutation. Structured events contain logical identifiers, status, and exit codes but never raw Winget output.
 
 Journal and state inputs remain untrusted files. Event decoding rejects unknown fields and invalid schema vocabulary, sequences must increase, snapshots are flushed before atomic replacement, and resume requires matching plan, catalog, platform, architecture, profile, and operation inventory. Corrupt or legacy partial state fails closed rather than repeating the whole plan.
 
-The Go controller/broker is still an unreleased development path. It has not replaced the v6.1 bootstrap or PowerShell engine, does not yet perform the controller's one-shot `RunAs` handoff, and has not been exercised through real package installation in a disposable VM. Those are runtime-cutover blockers, not completed security claims.
+The Go controller/broker ships as a source-only development path. It has not replaced the v6.2 bootstrap or PowerShell engine, is excluded from the runtime ZIP, does not yet perform the controller's one-shot `RunAs` handoff, and has not been exercised through real package installation in a disposable VM. Those are runtime-cutover blockers, not completed security claims.

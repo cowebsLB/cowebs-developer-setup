@@ -37,7 +37,7 @@ master-setup.bat --profile ai --essentials-only --pack ai-conda --dry-run
 
 Run `master-setup.bat` without arguments for the interactive branded setup. A real installation requests Administrator approval once at the beginning, then the elevated session downloads its pinned release payload into a randomized directory under `%TEMP%\COWebs.lb`, verifies its hard-coded SHA-256 checksum, runs the Windows engine, saves logs outside the payload, and removes the temporary directory. Help, version, pack listing, and dry-run commands do not request elevation.
 
-Before installation starts, v6.1 prints a fresh-setup download range and install-time range for the resolved plan. During execution, color-coded status labels make installing, successful, skipped, and failed packages easy to scan. The final summary reports installed, skipped, failed, and configured items plus the persistent log path.
+Before installation starts, v6.2 prints a fresh-setup download range and install-time range for the resolved plan. During execution, color-coded status labels make installing, successful, skipped, and failed packages easy to scan. The final summary reports installed, skipped, failed, and configured items plus the persistent log path.
 
 ## Profiles and packs
 
@@ -59,16 +59,16 @@ See the [package and profile guide](docs/package-selection.md) for the complete 
 - `src/windows/setup.ps1` implements the Winget adapter and Windows configuration.
 - `src/macos/` and `src/linux/` are reserved for future adapters that consume the same logical keys.
 
-The unreleased modernization now includes a dependency-free Go CLI (`cowebs-setup`) behind provider-aware schema-v3 contracts, a deterministic v2-to-v3 compatibility compiler, native Windows adapter, one-shot privileged broker, structured JSONL journal with atomic state snapshots, and system diagnostic engine (`doctor`). Its independent parity harness matches the production PowerShell planner's exact Windows package order, selected packs, conflicts, and estimates for every profile in default and essentials-only modes. Schema v2 and the released Windows engine remain authoritative until the separately gated runtime cutover. See the [architecture](docs/architecture.md) and [ADRs](docs/adr/README.md).
+The v6.2 source tree includes a dependency-free Go CLI (`cowebs-setup`) behind provider-aware schema-v3 contracts, a deterministic v2-to-v3 compatibility compiler, native Windows adapter, one-shot privileged broker, structured JSONL journal with atomic state snapshots, and system diagnostic engine (`doctor`). Its independent parity harness matches the production PowerShell planner's exact Windows package order, selected packs, conflicts, and estimates for every profile in default and essentials-only modes. Schema v2 and the released Windows engine remain authoritative until the separately gated runtime cutover; the Go/schema-v3 artifacts are not bundled in the v6.2 runtime ZIP. See the [architecture](docs/architecture.md) and [ADRs](docs/adr/README.md).
 
-For unattended use in a future release built from the unreleased source, pass `--non-interactive` to suppress per-package confirmation. Interactive runs check whether a package is already installed before asking for confirmation, and accept `>skip`, `skip`, or `s` to omit a needed package.
+For unattended v6.2 runs, pass `--non-interactive` to suppress per-package confirmation. Interactive runs check whether a package is already installed before asking for confirmation, and accept `>skip`, `skip`, or `s` to omit a needed package.
 
 ## Safety
 
 - Tagged release asset instead of mutable `main` content.
 - SHA-256 verification before extraction or execution.
 - Bootstrap download, hashing, and extraction do not depend on PowerShell module auto-loading.
-- Exact Winget package IDs, all live-checked for v6.1.0.
+- Exact Winget package IDs, all live-checked for v6.2.0 on 2026-08-09.
 - Pre-install dependency and conflict resolution.
 - One initial UAC request for a complete real installation, with visible privilege reporting and no UAC-policy bypass.
 - Explicit authorized-lab confirmation for Kali WSL.

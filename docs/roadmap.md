@@ -14,9 +14,9 @@
 
 ## Next platform milestones
 
-1. macOS Homebrew mappings, shell bootstrap, and adapter tests.
-2. Ubuntu APT/Snap/Flatpak mappings and adapter tests.
-3. Fedora DNF/Flatpak mappings and adapter tests.
+1. Ubuntu APT/Snap/Flatpak mappings and adapter tests.
+2. Fedora DNF/Flatpak mappings and adapter tests.
+3. macOS Homebrew mappings, shell bootstrap, and adapter tests.
 
 ## Cross-platform improvements
 
@@ -28,4 +28,4 @@
 - [x] Resumable setup state for interrupted installations.
 - Clean VM/sandbox installation matrix.
 
-Windows real-install validation in a disposable VM remains the immediate release-quality follow-up after v6.1.0 dry-run and live-ID validation. Before runtime cutover, the Go controller must also own the single `RunAs` handoff instead of expecting the broker to be launched elevated.
+Windows real-install validation in a disposable VM remains the immediate release-quality follow-up after v6.2.0 dry-run and live-ID validation. Before runtime cutover, the Go controller must also own the single `RunAs` handoff instead of expecting the broker to be launched elevated.

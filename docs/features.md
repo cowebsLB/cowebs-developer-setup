@@ -1,6 +1,6 @@
 # Features
 
-## Available in v6.1.0
+## Available in v6.2.0
 
 - Full UTF-8 COWEBS.LB block-letter branding
 - Single-file Windows user experience
@@ -23,6 +23,8 @@
 - Persistent secret-free logging
 - Scoped temporary cleanup
 - Automated release-building and bootstrap simulation
+- Detailed package descriptions covering function, operation, and use case for all catalog packages
+- Interactive package skipping after installed-package detection, with `>skip`/`skip`/`s` responses and a bootstrap `--non-interactive` override
 
 ## Platform status
 
@@ -33,10 +35,8 @@
 | Ubuntu | Planned | APT, Snap, or Flatpak where appropriate |
 | Fedora | Planned | DNF or Flatpak where appropriate |
 
-## Unreleased architecture modernization
+## Development architecture modernization (source-only in v6.2.0)
 
-- Detailed package descriptions detailing function, operation, and use case for all catalog packages
-- Interactive package skipping after installed-package detection, with `>skip`/`skip`/`s` responses and a bootstrap `--non-interactive` override
 - Provider-aware package and profile schemas for the future cross-platform core
 - Typed execution-plan, event, and release-manifest contracts
 - Deterministic schema-v2 to schema-v3 compatibility compiler
@@ -48,4 +48,4 @@
 - System diagnostic engine (`internal/doctor`) for platform, package manager, workspace directory, and catalog integrity checks
 - `cowebs-setup` CLI subcommands (`plan`, `broker`, `status`, `resume`, `doctor`) with `--json` output format support
 - Exact black-box parity with the PowerShell planner across every profile and selection mode
-- No change to the v6.1 Windows runtime or public CLI
+- The Go binary and schema-v3 catalogs remain excluded from the v6.2 runtime bundle pending an approved cutover

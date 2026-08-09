@@ -24,7 +24,7 @@ master-setup.bat --profile devops --pack cloud-azure --dry-run
 
 Recommended packs are included by default. Use `--essentials-only` when you want just the shared core and the selected role's direct packages, then add only the packs you need. Repeat `--pack NAME` for multiple packs.
 
-Unreleased builds ask for confirmation only when a requested package is not already installed. Press Enter to install it, type `>skip` (also `skip` or `s`) to omit it, or pass `--non-interactive` to install every needed package without per-package prompts.
+Version 6.2 asks for confirmation only when a requested package is not already installed. Press Enter to install it, type `>skip` (also `skip` or `s`) to omit it, or pass `--non-interactive` to install every needed package without per-package prompts.
 
 Administrator mode is not required for previews. `--help`, `--version`, `--list-packs`, and `--dry-run` run without an elevation request. A real installation checks its Windows token and requests Administrator approval once before downloading or installing the payload. The elevated process then owns the complete setup, so ordinary Winget child processes inherit that access token instead of requesting elevation package by package.
 
@@ -45,4 +45,4 @@ The temporary payload is removed after success or failure unless `--keep-temp` i
 
 ## Other operating systems
 
-macOS, Ubuntu, and Fedora adapters are architectural placeholders in v6.1.0 and are not yet runnable. The schema-v2 intent is cross-platform, but the current package mappings and tested execution path are Windows-only.
+macOS, Ubuntu, and Fedora adapters are architectural placeholders in v6.2.0 and are not yet runnable. The schema-v2 intent is cross-platform, but the released package mappings and tested execution path are Windows-only.

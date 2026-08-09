@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Architecture Decision Records capture durable technical decisions for the cross-platform redesign. Accepted ADRs are binding until superseded by a later record. They do not change the v6.1 production runtime unless an implementation milestone explicitly says so.
+Architecture Decision Records capture durable technical decisions for the cross-platform redesign. Accepted ADRs are binding until superseded by a later record. They do not change the production runtime unless an implementation milestone explicitly says so.
 
 | ADR | Status | Decision |
 |---|---|---|

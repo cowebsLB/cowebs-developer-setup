@@ -21,7 +21,7 @@ $profiles = Get-Content -LiteralPath $profilesPath -Raw -Encoding UTF8 | Convert
 $readme = Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8
 $buildSource = Get-Content -LiteralPath $buildScriptPath -Raw -Encoding UTF8
 
-Assert-True ($bootstrap -match 'set "VERSION=6\.1\.0"') 'Bootstrap version 6.1.0 is missing.'
+Assert-True ($bootstrap -match 'set "VERSION=6\.2\.0"') 'Bootstrap version 6.2.0 is missing.'
 Assert-True ($bootstrap -match 'cowebsLB/cowebs-developer-setup') 'Pinned GitHub repository is missing.'
 Assert-True ($bootstrap -match 'releases/download/v%VERSION%') 'Pinned release URL is missing.'
 Assert-True ($bootstrap -match 'Security\.Cryptography\.SHA256') '.NET SHA-256 verification is missing.'
@@ -50,7 +50,7 @@ Assert-True ($readme -match 'img\.shields\.io/github/v/release') 'README release
 Assert-True ($readme -match 'license-MIT') 'README license badge is missing.'
 Assert-True ($readme -match 'platform-Windows') 'README platform badge is missing.'
 Assert-True ($readme -match 'manifest-v2') 'README schema badge is missing.'
-Assert-True ($buildSource -match "Version = '6\.2\.0-dev'") 'Release builder must default to the next prerelease version.'
+Assert-True ($buildSource -match "Version = '6\.2\.0'") 'Release builder must default to the release version at the release tag.'
 Assert-True ($buildSource -match "publishedVersions = @\('6\.0\.0', '6\.1\.0'\)") 'Release builder must protect published immutable versions.'
 Assert-True ($engineSource -match "INSTALLING\s*=\s*'Cyan'") 'INSTALLING status must be cyan.'
 Assert-True ($engineSource -match "SUCCESS\s*=\s*'Green'") 'SUCCESS status must be green.'

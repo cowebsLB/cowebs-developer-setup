@@ -10,7 +10,7 @@ $restrictedModulePath = Join-Path $testOutput 'empty-modules'
 
 try {
     $artifact = & $buildScript -OutputDirectory $testOutput
-    if ($artifact.Version -ne '6.2.0-dev') { throw "Unreleased builds must use the next prerelease version, got '$($artifact.Version)'." }
+    if ($artifact.Version -ne '6.2.0') { throw "Release builds must use version 6.2.0, got '$($artifact.Version)'." }
     $before = @()
     if (Test-Path -LiteralPath $tempRoot) { $before = @(Get-ChildItem -LiteralPath $tempRoot -Directory | Select-Object -ExpandProperty FullName) }
 
@@ -23,7 +23,7 @@ try {
     $joined = $output -join "`n"
 
     if ($exitCode -ne 0) { throw "Bootstrap dry-run exited with code $exitCode.`n$joined" }
-    if ($joined -notmatch 'Master Developer Environment Setup v6\.1\.0') { throw 'Branded v6.1.0 header was not rendered.' }
+    if ($joined -notmatch 'Master Developer Environment Setup v6\.2\.0') { throw 'Branded v6.2.0 header was not rendered.' }
     if ($joined -notmatch 'Estimated Download \(fresh setup\):') { throw 'Bootstrap did not show the download estimate.' }
     if ($joined -notmatch 'Estimated Install Time:') { throw 'Bootstrap did not show the install-time estimate.' }
     if ($joined -notmatch 'Summary') { throw 'Bootstrap did not show the final summary.' }

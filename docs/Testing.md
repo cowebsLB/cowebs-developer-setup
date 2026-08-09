@@ -29,7 +29,7 @@ The suite validates:
 - per-package confirmation ordering and `--non-interactive` propagation through bootstrap, elevation handoff, and engine invocation;
 - bootstrap version, release URL, checksum, branding, CRLF, and cleanup contract;
 - release ZIP creation;
-- prerelease-default artifact naming and rejection of already-published immutable version identities;
+- release-tag artifact naming and rejection of older published immutable version identities;
 - checksum verification, extraction, repeated-pack handoff, final summary, and temporary deletion;
 - the complete bootstrap handoff with an intentionally restricted `PSModulePath` and no reliance on `Invoke-WebRequest`, `Get-FileHash`, or `Expand-Archive`;
 - required documentation.
@@ -38,4 +38,4 @@ GitHub Actions runs the same suite on `windows-latest` for pushes and pull reque
 
 Real package installations must be tested in Windows Sandbox or a disposable VM before a major public release. Dry-run success is not represented as real-install validation.
 
-Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The catalog passed this live check for all 86 IDs on 2026-08-07.
+Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The v6.2.0 catalog passed this live check for all 86 IDs on 2026-08-09.

@@ -4,6 +4,8 @@ All notable changes follow semantic versioning.
 
 ## [Unreleased]
 
+## [6.2.0] - 2026-08-09
+
 ### Added
 
 - Added structured execution journal and state snapshot module (`internal/journal`) for tracking execution events and enabling atomic state recovery.
@@ -15,7 +17,7 @@ All notable changes follow semantic versioning.
 - Added comprehensive package descriptions to all 86 package definitions in the catalog detailing function, operation, and use case.
 - Added interactive package skipping with `>skip` prompt after installed-package detection, backed by `-NonInteractive` and the bootstrap `--non-interactive` option for automated runs.
 - Added JSON Schema draft 2020-12 contracts for provider-aware package catalog v3, profile catalog v3, typed execution plans, structured execution events, and multi-platform release manifests.
-- Added a deterministic Windows PowerShell 5-compatible schema-v2 to schema-v3 compiler that preserves the complete v6.1 catalog and profile contract.
+- Added a deterministic Windows PowerShell 5-compatible schema-v2 to schema-v3 compiler that preserves the complete production catalog and profile contract.
 - Added accepted architecture decisions for a staged Go core, least-privilege broker, provider-aware adapters, and resumable structured execution state.
 - Added a dependency-free Go 1.26.5 catalog loader, deterministic shadow planner, and JSON CLI that emit typed detection, installation, and configuration operations without changing the production runtime.
 
@@ -29,7 +31,7 @@ All notable changes follow semantic versioning.
 
 ### Fixed
 
-- Fixed the release builder defaulting to the already-published v6.1.0 identity; unreleased builds now default to `6.2.0-dev` and reject published immutable versions.
+- Fixed the release builder defaulting to an already-published identity; development builds used `6.2.0-dev`, and the release tag now reproduces `6.2.0` while rejecting older published immutable versions.
 - Fixed the broker installing packages even after native detection reported them as already installed.
 - Fixed process-launch failures being misclassified as successful installed-package detection.
 - Fixed resume suppressing new journal events, changing session identity, ignoring state-load failures, and accepting state from another plan or catalog.
@@ -39,7 +41,7 @@ All notable changes follow semantic versioning.
 
 ### Testing
 
-- Added deterministic compilation, complete semantic parity, schema-contract, unknown-reference, and unsafe-override regression coverage without changing the production v6.1 runtime.
+- Added deterministic compilation, complete semantic parity, schema-contract, unknown-reference, and unsafe-override regression coverage without cutting the Go/schema-v3 architecture into the production runtime.
 - Added Go unit tests and independent black-box parity coverage for all nine profiles in default and essentials-only modes, explicit multi-pack composition, conflict rejection, exact estimates, operation counts, and byte-identical output.
 - Added canonical-plan tamper rejection, process-start failure, installed-package skip, durable resume, sequence continuity, mismatched-state, unknown-field, and non-interactive bootstrap regression coverage.
 - Updated Windows CI to Node 24-compatible `actions/checkout@v7` and `actions/setup-go@v7`, pinned through `go.mod`.

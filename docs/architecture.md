@@ -35,7 +35,7 @@ Windows estimates are catalog-driven. The manifest supplies conservative fallbac
 
 ## Architecture modernization implementation
 
-The unreleased redesign foundation introduces versioned contracts without changing the v6.1 runtime:
+The v6.2 source tree includes a development redesign foundation with versioned contracts without cutting those artifacts into the v6.2 runtime:
 
 - `schema/package-catalog-v3.schema.json` separates logical package intent from typed platform-provider mappings.
 - `schema/profile-catalog-v3.schema.json` gives packs and profiles explicit IDs while retaining logical references.
