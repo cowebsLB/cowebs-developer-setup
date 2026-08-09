@@ -8,6 +8,7 @@
 | Go planner and schema v3 | Source-only, parity proven | Not included in the public runtime ZIP |
 | Windows Go adapter and broker | Source-only, tested | Runtime cutover still gated on real-install validation and controller-owned elevation |
 | Ubuntu/Fedora adapter | Source-only foundation complete | No reviewed Linux provider catalog, broker orchestration, or Unix bootstrap yet |
+| Public `cowebs` CLI | Planned product surface | Existing `cowebs-setup` remains the source-only development engine |
 | macOS | Planned after the Linux path | No adapter or provider catalog yet |
 
 ## Completed architecture foundation
@@ -63,16 +64,31 @@
 - [ ] Preserve canonical-plan regeneration, catalog digest binding, redacted events, atomic snapshots, resume identity, and fail-closed recovery on Linux.
 - [ ] Define configuration, restart/session-refresh, failure-summary, and cleanup behavior for Linux.
 
-### Phase 5: Unix bootstrap and immutable distribution
+### Phase 5: Public COWebs CLI product surface
 
-- [ ] Add a thin Unix bootstrap that downloads only a pinned release artifact and verifies its declared SHA-256 before execution.
-- [ ] Publish versioned Linux binaries for supported architectures from one version source.
+- [ ] Make `cowebs install dev-setup` the stable interactive installation entry point.
+- [ ] Define the public command family: `cowebs plan dev-setup`, `cowebs install dev-setup`, `cowebs status dev-setup`, `cowebs resume dev-setup`, `cowebs doctor dev-setup`, and `cowebs update`.
+- [ ] Treat `dev-setup` as a stable product identifier so the umbrella CLI can add future COWebs products without changing the setup engine's domain model.
+- [ ] Preserve current profile, repeatable pack, essentials-only, dry-run, non-interactive, configuration, restart, and JSON capabilities through the public command grammar.
+- [ ] Reuse the existing `cowebs-setup` planner, broker, journal, resume, status, and doctor implementation behind the public CLI until an internal rename or package move passes compatibility tests.
+- [ ] Extract a shared Go application/service layer so the terminal CLI and future native GUI call the same typed orchestration API; the GUI must not scrape CLI output or duplicate planning logic.
+- [ ] Define stable help text, exit codes, human and JSON output contracts, shell completions, version reporting, and unknown-product/command diagnostics.
+- [ ] Preserve compatibility for the released Windows BAT and document any temporary `cowebs-setup` alias before removing or renaming an entry point.
+- [ ] Make self-update consume only a verified immutable release manifest; never download or execute mutable default-branch code.
+- [ ] Add parser, dispatch, compatibility, completion, update-integrity, and CLI-to-controller end-to-end tests.
+
+### Phase 6: Native packaging, bootstrap, and immutable distribution
+
+- [ ] Publish the `cowebs` executable through Winget/MSI or MSIX on Windows, signed `.deb`/APT packages on Ubuntu, signed `.rpm`/DNF packages on Fedora, and Homebrew after macOS support exists.
+- [ ] Add a thin Unix bootstrap that downloads only a pinned `cowebs` release artifact and verifies its declared SHA-256 before execution.
+- [ ] Publish versioned `cowebs` binaries for supported platforms and architectures from one version source.
 - [ ] Generate a release manifest that records platform, architecture, artifact name, size, digest, and minimum supported environment.
 - [ ] Keep the bootstrap free of mutable default-branch execution, repository cloning, credentials, and embedded arbitrary install commands.
 - [ ] Add checksums and an SBOM; evaluate signing before declaring the Linux path stable.
 - [ ] Preserve `master-setup.bat` as the Windows single-file experience throughout Linux delivery.
+- [ ] Make the optional native installer a graphical frontend over the same shared controller used by `cowebs install dev-setup`, with identical plans, consent, progress, journal, resume, and failure semantics.
 
-### Phase 6: Disposable-environment validation and Linux release gate
+### Phase 7: Disposable-environment validation and Linux release gate
 
 - [ ] Run non-installing compiler, planner, adapter, and bootstrap tests in CI for Ubuntu and Fedora.
 - [ ] Run real installations only in disposable Ubuntu and Fedora VMs or equivalent isolated environments.
@@ -80,6 +96,7 @@
 - [ ] Verify user-versus-machine ownership, PATH/session behavior, logs, cleanup, and absence of credential or raw installer-output persistence.
 - [ ] Record the supported distribution/version/architecture matrix from evidence gathered during the release candidate.
 - [ ] Publish a Linux release only after public asset hashes, downloaded bootstrap dry-runs, CI, and disposable-environment installation evidence all agree.
+- [ ] Verify that installation through native packages, the Unix bootstrap, the terminal CLI, and the optional GUI resolves the same canonical `dev-setup` plan for identical inputs.
 
 ## Parallel Windows runtime-cutover gates
 
@@ -108,13 +125,15 @@
 - Selected plans report complete supported and unsupported intent.
 - Detection and dry-run paths execute without elevation or mutation.
 - CI covers both distributions and all schema/planner/adapter contracts.
+- `cowebs plan dev-setup` exposes the same deterministic plan through documented human and JSON output contracts.
 
 ### Linux stable-runtime-ready
 
+- `cowebs install dev-setup` is the documented stable entry point and shares one orchestration implementation with any native GUI.
 - The Unix bootstrap is checksum-pinned to immutable artifacts.
 - Privilege separation, journal/resume, diagnostics, and configuration behavior pass disposable-environment tests.
 - Supported packages and distribution versions are documented from current evidence.
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The immediate implementation sequence is Ubuntu compatibility mappings and complete unsupported-package diagnostics, followed by a bounded Ubuntu end-to-end plan. Fedora should reuse that proven path before Linux privilege orchestration and bootstrap work begin.
+The immediate implementation sequence remains Ubuntu compatibility mappings and complete unsupported-package diagnostics, followed by a bounded Ubuntu end-to-end plan. Fedora should reuse that proven path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.

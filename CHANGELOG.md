@@ -8,6 +8,7 @@ All notable changes follow semantic versioning.
 
 - Advanced development builds to `6.3.0-dev` and protected the published v6.2.0 identity from rebuilds on newer source.
 - Expanded the Linux roadmap into staged Ubuntu, Fedora, privilege-orchestration, immutable-bootstrap, disposable-environment validation, and release-readiness gates.
+- Added the planned public `cowebs install dev-setup` command family, shared CLI/GUI controller boundary, native packaging targets, compatibility requirements, and end-to-end product-surface gates to the roadmap and API documentation.
 
 ### Added
 

@@ -35,6 +35,23 @@ The PowerShell engine also accepts `-PackNames`, `-EssentialsOnly`, and `-ListPa
 
 There is no network service API.
 
+## Planned public COWebs CLI contract
+
+The stable cross-platform product entry point is planned as an umbrella `cowebs` CLI with `dev-setup` as the product identifier:
+
+```text
+cowebs plan dev-setup [options]
+cowebs install dev-setup [options]
+cowebs status dev-setup [options]
+cowebs resume dev-setup [options]
+cowebs doctor dev-setup [options]
+cowebs update
+```
+
+This command family is a roadmap contract, not an implemented or released interface. It will preserve the existing profile, repeatable pack, essentials-only, dry-run, non-interactive, configuration, restart, and JSON capabilities. The current `cowebs-setup` development CLI remains the engine until public dispatch, compatibility aliases, help, exit codes, completions, update integrity, and end-to-end behavior are implemented and tested.
+
+The terminal CLI and any native graphical installer must call one shared typed Go application layer. The GUI must not parse terminal output or implement a second planner. Native package managers install or update the `cowebs` controller itself; `cowebs install dev-setup` then delegates the resolved developer-tool operations to the verified provider adapters and privileged broker.
+
 ## Development architecture contracts (source-only in v6.2.0)
 
 The `schema/` directory contains JSON Schema draft 2020-12 contracts for the future cross-platform core:

@@ -57,13 +57,17 @@ The shadow planner has exact black-box parity with the production PowerShell pla
 ## Target architecture
 
 ```text
-generated BAT / Unix bootstrap
-    -> download and verify while unelevated
-        -> Go controller: inventory -> resolve -> plan -> consent
+native package / generated BAT / Unix bootstrap
+    -> install or launch verified cowebs controller
+        -> frontend: public CLI (cowebs install dev-setup) or optional native GUI
+        -> shared Go application service
+            -> inventory -> resolve -> plan -> consent
             -> user-scope executor
             -> one elevated typed broker for machine operations
                 -> Winget / Brew / APT / DNF / Snap / Flatpak adapters
-        -> structured events, JSONL journal, atomic resume state
+            -> structured events, JSONL journal, atomic resume state
 ```
+
+`cowebs` is the planned stable umbrella CLI and `dev-setup` is its product identifier. The current `cmd/cowebs-setup` entry point remains the development engine until the shared application layer and public dispatch contract are implemented with compatibility coverage. CLI and GUI frontends must share typed controller services rather than invoking each other or duplicating planning and execution rules.
 
 The accepted decisions and compatibility constraints are recorded in [docs/adr](adr/README.md). Runtime cutover remains blocked on disposable-VM parity and real-install validation.
