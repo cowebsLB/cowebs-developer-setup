@@ -6,6 +6,9 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
+- Completed Ubuntu Phase 2 package classification across all 86 logical tools: 54 reviewed executable providers and 32 explicit unsupported results.
+- Added exact Ubuntu providers for AWS CLI, Azure CLI, Google Cloud CLI, DVC, R, Nmap, Wireshark, Unity Hub, Godot, Blender, Krita, Audacity, OBS Studio, Inkscape, GIMP 3, LMMS, Tiled, and Blockbench.
+- Added digest-pinned Microsoft Azure CLI, Google Cloud CLI, and Unity Hub APT prerequisites while retaining one de-duplicated package-index refresh per plan.
 - Classified the next 18 Ubuntu host-platform, Kubernetes, IaC, automation, secrets, and encryption tools: eleven reviewed executable providers and seven explicit unsupported results.
 - Added exact Ubuntu providers for kubectl, Helm, Mike Farah yq, kubectx, Trivy, OpenTofu, Terraform, Vault, Packer, Task, and age; WSL intent remains Windows-only and artifact/script-only tools remain fail-closed.
 - Added reusable digest-pinned Trivy and HashiCorp APT prerequisites, with Terraform, Vault, and Packer sharing one repository and one package-index refresh.
@@ -24,6 +27,7 @@ All notable changes follow semantic versioning.
 
 ### Added
 
+- Added deterministic final-slice Ubuntu planning coverage for eighteen providers, APT/Snap/Flathub scope and architecture constraints, four shared repositories including the core prerequisite, and complete dependency-aware unsupported diagnostics.
 - Added deterministic Ubuntu Kubernetes/IaC/security planning coverage for eleven executable providers, four reviewed classic snaps, shared HashiCorp prerequisites, and complete dependency-aware unsupported diagnostics.
 - Added deterministic Ubuntu productivity/tooling-slice planning coverage for nine executable providers, five signed repositories including the core GitHub prerequisite, one shared APT refresh, Flathub user scope, and complete ordered unsupported diagnostics.
 - Added deterministic Ubuntu runtime-slice planning coverage for the five executable providers and complete ordered fail-closed diagnostics for selected script-, artifact-, version-, and Corepack-dependent tools.
@@ -35,6 +39,8 @@ All notable changes follow semantic versioning.
 
 ### Security
 
+- Refused downloaded JupyterLab/RStudio/Ollama/ZAP/Burp/RenderDoc installers and Windows-only Sysinternals, Kali WSL, Epic Games Launcher, and Visual Studio game workload intent until verified artifact, service, consent, or appropriate platform handlers exist.
+- Pinned current Microsoft, Google Cloud, and Unity repository-key bytes by SHA-256; preserved GIMP 3 through user-scoped Flathub instead of silently substituting Ubuntu 24.04's GIMP 2.10 package.
 - Refused to reinterpret Windows-only WSL packages on Ubuntu or execute K9s, kind, Flux, TFLint, and SOPS release artifacts or installer scripts before verified artifact handling exists.
 - Pinned current Trivy and HashiCorp repository-key bytes by SHA-256 and kept Vault initialization/authentication outside package installation intent.
 - Refused downloaded DBeaver and MongoDB Compass packages, interactive MySQL APT setup, unofficial Figma desktop wrappers, and Android Studio archive/setup automation until verified artifact, consent, and interactive-setup handlers exist.

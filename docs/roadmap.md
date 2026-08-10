@@ -7,7 +7,7 @@
 | Windows v6.2.0 | Released and verified | Schema v2 plus `src/windows/setup.ps1` |
 | Go planner and schema v3 | Source-only, parity proven | Not included in the public runtime ZIP |
 | Windows Go adapter and broker | Source-only, tested | Runtime cutover still gated on real-install validation and controller-owned elevation |
-| Ubuntu/Fedora adapter | Ubuntu full x64 core plus bounded runtime, productivity/tooling, and Kubernetes/IaC/security planning; Fedora adapter foundation | 58 Ubuntu classifications; typed prerequisites are dry-run-only; no Linux broker or Unix bootstrap yet |
+| Ubuntu/Fedora adapter | Complete Ubuntu package classification and deterministic bounded planning; Fedora adapter foundation | 86 Ubuntu classifications; typed prerequisites are dry-run-only; no Linux broker or Unix bootstrap yet |
 | Public `cowebs` CLI | Planned product surface | Existing `cowebs-setup` remains the source-only development engine |
 | macOS | Planned after the Linux path | No adapter or provider catalog yet |
 
@@ -35,12 +35,12 @@
 - [x] Distinguish residual dpkg configuration from an installed package.
 - [x] Cover dry-run isolation, process-start failure, mismatched managers, malformed arguments, and Flatpak scope in unit tests.
 
-### Phase 2: Ubuntu catalog and planning — in progress
+### Phase 2: Ubuntu catalog and planning — package classification complete
 
 - [x] Define the deterministic schema-v2 compatibility input for reviewed Ubuntu providers without creating a hand-maintained schema-v3 catalog.
 - [x] Classify the 11-package core slice: seven native packages, one documented alternative, two conditional Snap packages, and GitHub CLI through a conditional signed APT repository.
-- [ ] Classify every logical package as supported, replaced by a documented Linux alternative, conditionally supported, or unsupported on Ubuntu.
-- [ ] Add exact APT, Snap, or Flatpak provider identifiers, source, privilege, scope, architecture, typed options, and conservative estimates.
+- [x] Classify every logical package as supported, replaced by a documented Linux alternative, conditionally supported, or unsupported on Ubuntu.
+- [x] Add exact APT, Snap, or Flatpak provider identifiers, source, privilege, scope, architecture, typed options, and conservative estimates.
 - [x] Make the compatibility compiler emit deterministic Ubuntu providers while retaining the Windows provider contract and production runtime behavior.
 - [x] Add explicit planner diagnostics that list all unsupported packages for the selected profile instead of failing on only the first missing provider or silently omitting intent.
 - [x] Prove the full 11-package Ubuntu x64 core plan through compilation, planning, detection, dry-run rendering, and deterministic JSON.
@@ -48,8 +48,9 @@
 - [x] Classify the 15-package language/runtime/container slice with native Node.js, OpenJDK 21, .NET SDK 10, and Rustup providers, a conditional Canonical Go snap, and ten explicit unsupported results for unmodeled version, artifact, or user-configuration paths.
 - [x] Classify the 14-package database/client/browser/networking/design/Android slice with nine exact providers and five explicit unsupported results; cover PostgreSQL, Chrome, Cloudflare, and ngrok repositories with digest-pinned typed prerequisites.
 - [x] Classify the 18-package host-platform/Kubernetes/IaC/automation/secrets slice with eleven exact providers and seven explicit unsupported results; share typed Trivy and HashiCorp repository prerequisites without duplicate refreshes.
+- [x] Classify the final 28 cloud/data/security/game packages with eighteen exact providers and ten explicit unsupported results; preserve GIMP 3 through Flathub, limit reviewed x64-only providers explicitly, and add typed Azure CLI, Google Cloud CLI, and Unity Hub repositories.
 - [ ] Map supported configuration intents to Linux-specific implementations; leave unsupported configuration explicit.
-- [x] Validate the first 58 classifications, seven keyring digests, Snap/Flathub architecture availability, and repository package indexes against current primary sources without installing on the developer workstation.
+- [x] Validate all 86 classifications, ten keyring digests, Snap/Flathub architecture availability, and repository package indexes against current primary sources without installing on the developer workstation.
 
 ### Phase 3: Fedora catalog and planning
 
@@ -141,4 +142,4 @@
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The immediate implementation sequence is to classify and map the remaining 28 Ubuntu packages, extending typed prerequisites only where reviewed providers require them, then implement Linux-specific configuration intents. Real repository writes and APT refresh stay blocked until Phase 4 supplies atomic mutation and one elevated controller handoff. Fedora should reuse the proven compiler, diagnostic, and full-core plan path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.
+The immediate implementation sequence is to map supported shared configuration intents to Linux-specific implementations while keeping authentication, license activation, account setup, and unsupported configuration explicit. Real repository writes and APT refresh stay blocked until Phase 4 supplies atomic mutation and one elevated controller handoff. Fedora should reuse the proven compiler, diagnostic, and full-core plan path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.

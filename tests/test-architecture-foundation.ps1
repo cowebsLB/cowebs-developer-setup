@@ -122,9 +122,9 @@ try {
     }
 
     $ubuntuMappings = @($packagesV2.packages | Where-Object { $null -ne (Get-OptionalValue $_.platforms 'ubuntu') })
-    Assert-True ($ubuntuMappings.Count -eq 58) 'The Ubuntu compatibility catalog must classify the 11 core packages plus the reviewed runtime, productivity/tooling, and Kubernetes/IaC/security slices.'
-    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 22) 'The reviewed Ubuntu slices must preserve all twenty-two explicit unsupported results.'
-    Assert-True (@($packagesV3.prerequisites).Count -eq 7) 'The compiler must emit exactly seven bounded Ubuntu prerequisites.'
+    Assert-True ($ubuntuMappings.Count -eq 86) 'Every logical package must have a reviewed Ubuntu classification.'
+    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 32) 'The complete Ubuntu catalog must preserve all thirty-two explicit unsupported results.'
+    Assert-True (@($packagesV3.prerequisites).Count -eq 10) 'The compiler must emit exactly ten bounded Ubuntu prerequisites.'
     $githubPrerequisite = @($packagesV3.prerequisites | Where-Object { $_.id -eq 'github-cli-apt' })[0]
     Assert-True ($githubPrerequisite.id -eq 'github-cli-apt' -and $githubPrerequisite.type -eq 'apt-repository') 'GitHub CLI prerequisite identity changed.'
     Assert-True ($githubPrerequisite.keyringSha256 -eq '6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b') 'GitHub CLI keyring digest changed.'
@@ -137,6 +137,9 @@ try {
         'ngrok-apt' = '8a57c28e1779e2a8e5bba3865fffd6805e15898988c235eae862f3069c3f2c28'
         'trivy-apt' = '067f4782e5f2a736710c5256a9695c3ccb4731727a6118da8d8f532be97ecb39'
         'hashicorp-apt' = 'cafb01beac341bf2a9ba89793e6dd2468110291adfbb6c62ed11a0cde6c09029'
+        'azure-cli-apt' = '2fa9c05d591a1582a9aba276272478c262e95ad00acf60eaee1644d93941e3c6'
+        'google-cloud-cli-apt' = '3ecc63922b7795eb23fdc449ff9396f9114cb3cf186d6f5b53ad4cc3ebfbb11f'
+        'unity-hub-apt' = '50b6488eb573a02a96f897482fd190e965eaf58c60b7053aec31ab54bc63b726'
     }
     foreach ($entry in $expectedPrerequisiteDigests.GetEnumerator()) {
         $prerequisite = $packagesV3.prerequisites | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
@@ -157,14 +160,21 @@ try {
         'kubectx' = @('apt-get', 'kubectx'); 'trivy' = @('apt-get', 'trivy'); 'opentofu' = @('snap', 'opentofu')
         'terraform' = @('apt-get', 'terraform'); 'vault' = @('apt-get', 'vault'); 'packer' = @('apt-get', 'packer')
         'task' = @('snap', 'task'); 'age' = @('apt-get', 'age')
+        'aws-cli' = @('snap', 'aws-cli'); 'azure-cli' = @('apt-get', 'azure-cli'); 'google-cloud-cli' = @('apt-get', 'google-cloud-cli')
+        'dvc' = @('snap', 'dvc'); 'r' = @('apt-get', 'r-base'); 'nmap' = @('apt-get', 'nmap'); 'wireshark' = @('apt-get', 'wireshark')
+        'unity-hub' = @('apt-get', 'unityhub'); 'godot' = @('flatpak', 'org.godotengine.Godot')
+        'blender' = @('apt-get', 'blender'); 'krita' = @('apt-get', 'krita'); 'audacity' = @('apt-get', 'audacity')
+        'obs-studio' = @('flatpak', 'com.obsproject.Studio'); 'inkscape' = @('apt-get', 'inkscape')
+        'gimp' = @('flatpak', 'org.gimp.GIMP'); 'lmms' = @('apt-get', 'lmms'); 'tiled' = @('apt-get', 'tiled')
+        'blockbench' = @('flatpak', 'net.blockbench.Blockbench')
     }
     foreach ($entry in $expectedUbuntuProviders.GetEnumerator()) {
         $compiled = $packagesV3.packages | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
         $provider = @($compiled.providers.ubuntu)[0]
         Assert-True ($provider.manager -eq $entry.Value[0] -and $provider.packageId -eq $entry.Value[1]) "Package '$($entry.Key)' has an unexpected Ubuntu provider."
-        $expectedPrivilege = if ($entry.Key -eq 'bruno') { 'user,user' } else { 'elevated,machine' }
+        $expectedPrivilege = if ($entry.Key -in @('bruno', 'godot', 'obs-studio', 'gimp', 'blockbench')) { 'user,user' } else { 'elevated,machine' }
         Assert-True (("$($provider.privilege),$($provider.scope)") -eq $expectedPrivilege) "Package '$($entry.Key)' Ubuntu provider has an unexpected privilege or scope."
-        $expectedArchitectures = if ($entry.Key -in @('vscode', 'powershell', 'bruno', 'redis-insight')) { 'x64' } else { 'x64,arm64' }
+        $expectedArchitectures = if ($entry.Key -in @('vscode', 'powershell', 'bruno', 'redis-insight', 'google-cloud-cli', 'unity-hub', 'tiled', 'blockbench')) { 'x64' } else { 'x64,arm64' }
         Assert-True (($provider.architectures -join ',') -eq $expectedArchitectures) "Package '$($entry.Key)' Ubuntu architectures changed."
         Assert-True ($provider.detection.type -eq 'manager-native') "Package '$($entry.Key)' Ubuntu detection must be manager-native."
     }
@@ -172,11 +182,11 @@ try {
     Assert-True ((@($goCompiled.providers.ubuntu)[0].installOptions -join ',') -eq '--classic') 'Go must retain its typed classic Snap option.'
     $brunoCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'bruno' } | Select-Object -First 1
     Assert-True ((@($brunoCompiled.providers.ubuntu)[0].source) -eq 'flathub') 'Bruno must retain its explicit Flathub source.'
-    foreach ($packageId in @('kubectl', 'helm', 'opentofu', 'task')) {
+    foreach ($packageId in @('kubectl', 'helm', 'opentofu', 'task', 'aws-cli', 'dvc')) {
         $compiled = $packagesV3.packages | Where-Object { $_.id -eq $packageId } | Select-Object -First 1
         Assert-True ((@($compiled.providers.ubuntu)[0].installOptions -join ',') -eq '--classic') "Package '$packageId' must retain its reviewed classic Snap option."
     }
-    $expectedUnsupportedRuntimeIds = @('python', 'uv', 'ruff', 'miniconda', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker', 'dbeaver', 'mongodb-compass', 'mysql-workbench', 'figma', 'android-studio', 'wsl', 'ubuntu-wsl', 'k9s', 'kind', 'flux', 'tflint', 'sops')
+    $expectedUnsupportedRuntimeIds = @('python', 'uv', 'ruff', 'miniconda', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker', 'dbeaver', 'mongodb-compass', 'mysql-workbench', 'figma', 'android-studio', 'wsl', 'ubuntu-wsl', 'k9s', 'kind', 'flux', 'tflint', 'sops', 'jupyterlab', 'ollama', 'rstudio', 'sysinternals', 'zap', 'burp-community', 'kali-wsl', 'epic-games-launcher', 'visual-studio-game', 'renderdoc')
     foreach ($packageId in $expectedUnsupportedRuntimeIds) {
         $sourcePackage = $packagesV2.packages | Where-Object { $_.key -eq $packageId } | Select-Object -First 1
         Assert-True ($sourcePackage.platforms.ubuntu.support -eq 'unsupported') "Package '$packageId' must remain explicitly unsupported in the Ubuntu 24.04 runtime slice."

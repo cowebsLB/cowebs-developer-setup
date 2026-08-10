@@ -32,7 +32,7 @@
 |---|---|---|
 | Windows | Implemented | Winget |
 | macOS | Planned | Homebrew |
-| Ubuntu | Full x64 core plus bounded runtime, productivity/tooling, and Kubernetes/IaC/security planning (source-only; not installable) | Fifty-eight classifications: thirty-six executable providers and twenty-two explicit unsupported results |
+| Ubuntu | Complete package classification and deterministic bounded planning (source-only; not installable) | Eighty-six classifications: fifty-four executable providers and thirty-two explicit unsupported results |
 | Fedora | Adapter foundation (source-only) | DNF, Snap, or Flatpak where appropriate |
 
 ## Development architecture modernization (source-only in v6.2.0)
@@ -41,9 +41,9 @@
 - Typed execution-plan, event, and release-manifest contracts
 - Deterministic schema-v2 to schema-v3 compatibility compiler
 - Typed Ubuntu compatibility input for native, alternative, conditional, and unsupported classifications
-- Fifty-eight reviewed Ubuntu classifications covering the core, runtime, productivity/tooling, and Kubernetes/IaC/security slices, with thirty-six executable providers and twenty-two explicit unsupported results
-- Digest-pinned typed planning for seven signed APT repositories, including shared HashiCorp setup for Terraform, Vault, and Packer, with one de-duplicated index refresh
-- Full deterministic Ubuntu x64 core coverage plus bounded runtime, productivity/tooling, and Kubernetes/IaC/security planning, including user-scoped Flathub, machine-scoped Snap/APT, classic confinement, and ordered dependency-aware unsupported diagnostics
+- All eighty-six logical packages have reviewed Ubuntu classifications, with fifty-four executable providers and thirty-two explicit unsupported results
+- Digest-pinned typed planning for ten signed APT repositories, including shared HashiCorp setup and dedicated Azure CLI, Google Cloud CLI, and Unity Hub sources, with one de-duplicated index refresh
+- Deterministic Ubuntu x64 core and bounded full-catalog slice coverage, including cloud, data, security, game, user-scoped Flathub, machine-scoped Snap/APT, classic confinement, architecture limits, and ordered dependency-aware unsupported diagnostics
 - Accepted ADRs for the Go controller, least-privilege broker, provider adapters, and resumable event journal
 - Strict dependency-free Go catalog loader and deterministic shadow planner
 - Windows provider adapter (`internal/adapter/windows`) with native Winget detection and direct binary execution

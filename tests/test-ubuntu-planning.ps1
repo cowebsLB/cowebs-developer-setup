@@ -144,6 +144,22 @@ try {
         recommendedPackIds = @()
         optionalPackIds = @()
     }
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-final-supported'
+        name = 'Ubuntu supported cloud, data, security, and game tooling slice'
+        extends = @()
+        packageIds = @('aws-cli', 'azure-cli', 'google-cloud-cli', 'dvc', 'r', 'nmap', 'wireshark', 'unity-hub', 'godot', 'blender', 'krita', 'audacity', 'obs-studio', 'inkscape', 'gimp', 'lmms', 'tiled', 'blockbench')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-final-unsupported'
+        name = 'Ubuntu unsupported cloud, data, security, and game tooling diagnostics'
+        extends = @()
+        packageIds = @('jupyterlab', 'ollama', 'rstudio', 'sysinternals', 'zap', 'burp-community', 'kali-wsl', 'epic-games-launcher', 'visual-studio-game', 'renderdoc')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
     $runtimeProfilesPath = Join-Path $tempRoot 'runtime-profile-catalog.v3.json'
     Write-Utf8Json -Value $runtimeProfiles -Path $runtimeProfilesPath
 
@@ -234,7 +250,45 @@ try {
     Assert-True ($infraUnsupported.ExitCode -eq 1) 'The unsupported Ubuntu infrastructure slice must fail closed.'
     Assert-True ($infraUnsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: wsl, ubuntu-wsl, k9s, docker, kind, flux, tflint, sops') 'Ubuntu infrastructure unsupported-package diagnostics changed or omitted selected dependency intent.'
 
-    Write-Host 'PASS: Ubuntu core, runtime, productivity, and infrastructure-slice compilation, typed repository planning, deterministic JSON, and fail-closed diagnostics.' -ForegroundColor Green
+    $finalArguments = @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-final-supported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    $finalFirst = Invoke-Native -FilePath $cliPath -Arguments $finalArguments
+    $finalSecond = Invoke-Native -FilePath $cliPath -Arguments $finalArguments
+    Assert-True ($finalFirst.ExitCode -eq 0 -and $finalSecond.ExitCode -eq 0) "Ubuntu final supported slice failed: $($finalFirst.Stderr)$($finalSecond.Stderr)"
+    Assert-True ($finalFirst.Stdout -ceq $finalSecond.Stdout) 'Ubuntu final supported slice plan JSON is not byte-deterministic.'
+    $finalPlan = $finalFirst.Stdout | ConvertFrom-Json
+    $finalInstalls = @($finalPlan.operations | Where-Object { $_.kind -eq 'install' })
+    Assert-True ($finalInstalls.Count -eq 29) 'Ubuntu final supported slice must contain the 11 core installs plus eighteen reviewed installs.'
+    Assert-True (($finalInstalls[-18..-1].logicalPackageId -join ',') -eq 'aws-cli,azure-cli,google-cloud-cli,dvc,r,nmap,wireshark,unity-hub,godot,blender,krita,audacity,obs-studio,inkscape,gimp,lmms,tiled,blockbench') 'Ubuntu final supported install order changed.'
+    foreach ($packageId in @('aws-cli', 'dvc')) {
+        $install = $finalInstalls | Where-Object { $_.logicalPackageId -eq $packageId } | Select-Object -First 1
+        Assert-True ($install.manager -eq 'snap' -and ($install.installOptions -join ',') -eq '--classic') "Package '$packageId' must use its reviewed classic Snap provider."
+    }
+    foreach ($packageId in @('godot', 'obs-studio', 'gimp', 'blockbench')) {
+        $install = $finalInstalls | Where-Object { $_.logicalPackageId -eq $packageId } | Select-Object -First 1
+        Assert-True ($install.manager -eq 'flatpak' -and $install.source -eq 'flathub' -and $install.scope -eq 'user') "Package '$packageId' must use its reviewed user-scoped Flathub provider."
+    }
+    $finalPrerequisites = @($finalPlan.operations | Where-Object { $_.kind -in @('ensure-repository-key', 'ensure-apt-repository', 'refresh-package-index') })
+    Assert-True (@($finalPrerequisites | Where-Object { $_.kind -eq 'ensure-repository-key' }).Count -eq 4) 'The final supported plan must include GitHub, Azure CLI, Google Cloud CLI, and Unity Hub repository keys.'
+    Assert-True (@($finalPrerequisites | Where-Object { $_.kind -eq 'ensure-apt-repository' }).Count -eq 4) 'The final supported plan must include GitHub, Azure CLI, Google Cloud CLI, and Unity Hub repositories.'
+    Assert-True (@($finalPrerequisites | Where-Object { $_.kind -eq 'refresh-package-index' }).Count -eq 1) 'All final-slice APT prerequisites must share one package-index refresh.'
+    foreach ($packageId in @('azure-cli', 'google-cloud-cli', 'unity-hub')) {
+        $install = $finalInstalls | Where-Object { $_.logicalPackageId -eq $packageId } | Select-Object -First 1
+        Assert-True (($install.dependsOn -join ',') -match 'prerequisite:apt-get:refresh') "Package '$packageId' must depend on the shared typed APT refresh."
+    }
+
+    $finalUnsupported = Invoke-Native -FilePath $cliPath -Arguments @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-final-unsupported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    Assert-True ($finalUnsupported.ExitCode -eq 1) 'The final unsupported Ubuntu slice must fail closed.'
+    Assert-True ($finalUnsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: jupyterlab, ollama, rstudio, sysinternals, zap, burp-community, wsl, kali-wsl, epic-games-launcher, visual-studio-game, renderdoc') 'Ubuntu final unsupported-package diagnostics changed or omitted dependency intent.'
+
+    Write-Host 'PASS: Complete Ubuntu catalog compilation, typed repository planning, deterministic JSON, and fail-closed diagnostics.' -ForegroundColor Green
 } finally {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }
 }
