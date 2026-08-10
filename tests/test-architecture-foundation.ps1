@@ -122,9 +122,9 @@ try {
     }
 
     $ubuntuMappings = @($packagesV2.packages | Where-Object { $null -ne (Get-OptionalValue $_.platforms 'ubuntu') })
-    Assert-True ($ubuntuMappings.Count -eq 40) 'The Ubuntu compatibility catalog must classify the 11 core packages, 15 language/runtime/container packages, and 14 database/client/browser/networking/Android packages.'
-    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 15) 'The reviewed Ubuntu slices must preserve all fifteen explicit unsupported results.'
-    Assert-True (@($packagesV3.prerequisites).Count -eq 5) 'The compiler must emit exactly five bounded Ubuntu prerequisites.'
+    Assert-True ($ubuntuMappings.Count -eq 58) 'The Ubuntu compatibility catalog must classify the 11 core packages plus the reviewed runtime, productivity/tooling, and Kubernetes/IaC/security slices.'
+    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 22) 'The reviewed Ubuntu slices must preserve all twenty-two explicit unsupported results.'
+    Assert-True (@($packagesV3.prerequisites).Count -eq 7) 'The compiler must emit exactly seven bounded Ubuntu prerequisites.'
     $githubPrerequisite = @($packagesV3.prerequisites | Where-Object { $_.id -eq 'github-cli-apt' })[0]
     Assert-True ($githubPrerequisite.id -eq 'github-cli-apt' -and $githubPrerequisite.type -eq 'apt-repository') 'GitHub CLI prerequisite identity changed.'
     Assert-True ($githubPrerequisite.keyringSha256 -eq '6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b') 'GitHub CLI keyring digest changed.'
@@ -135,6 +135,8 @@ try {
         'google-chrome-apt' = '54dea5f6c2a26091578cf52a999cebc6b64df478d37ad4dce96376b711e3b27c'
         'cloudflared-apt' = '1bd95f4082b320d541bee351560fc2765aa9f9cd8efa4c9e32135e63f252721d'
         'ngrok-apt' = '8a57c28e1779e2a8e5bba3865fffd6805e15898988c235eae862f3069c3f2c28'
+        'trivy-apt' = '067f4782e5f2a736710c5256a9695c3ccb4731727a6118da8d8f532be97ecb39'
+        'hashicorp-apt' = 'cafb01beac341bf2a9ba89793e6dd2468110291adfbb6c62ed11a0cde6c09029'
     }
     foreach ($entry in $expectedPrerequisiteDigests.GetEnumerator()) {
         $prerequisite = $packagesV3.prerequisites | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
@@ -151,6 +153,10 @@ try {
         'postman' = @('snap', 'postman'); 'redis-insight' = @('snap', 'redisinsight')
         'chrome' = @('apt-get', 'google-chrome-stable'); 'firefox' = @('snap', 'firefox')
         'cloudflared' = @('apt-get', 'cloudflared'); 'ngrok' = @('apt-get', 'ngrok'); 'scrcpy' = @('apt-get', 'scrcpy')
+        'kubectl' = @('snap', 'kubectl'); 'helm' = @('snap', 'helm'); 'yq' = @('snap', 'yq')
+        'kubectx' = @('apt-get', 'kubectx'); 'trivy' = @('apt-get', 'trivy'); 'opentofu' = @('snap', 'opentofu')
+        'terraform' = @('apt-get', 'terraform'); 'vault' = @('apt-get', 'vault'); 'packer' = @('apt-get', 'packer')
+        'task' = @('snap', 'task'); 'age' = @('apt-get', 'age')
     }
     foreach ($entry in $expectedUbuntuProviders.GetEnumerator()) {
         $compiled = $packagesV3.packages | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
@@ -166,7 +172,11 @@ try {
     Assert-True ((@($goCompiled.providers.ubuntu)[0].installOptions -join ',') -eq '--classic') 'Go must retain its typed classic Snap option.'
     $brunoCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'bruno' } | Select-Object -First 1
     Assert-True ((@($brunoCompiled.providers.ubuntu)[0].source) -eq 'flathub') 'Bruno must retain its explicit Flathub source.'
-    $expectedUnsupportedRuntimeIds = @('python', 'uv', 'ruff', 'miniconda', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker', 'dbeaver', 'mongodb-compass', 'mysql-workbench', 'figma', 'android-studio')
+    foreach ($packageId in @('kubectl', 'helm', 'opentofu', 'task')) {
+        $compiled = $packagesV3.packages | Where-Object { $_.id -eq $packageId } | Select-Object -First 1
+        Assert-True ((@($compiled.providers.ubuntu)[0].installOptions -join ',') -eq '--classic') "Package '$packageId' must retain its reviewed classic Snap option."
+    }
+    $expectedUnsupportedRuntimeIds = @('python', 'uv', 'ruff', 'miniconda', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker', 'dbeaver', 'mongodb-compass', 'mysql-workbench', 'figma', 'android-studio', 'wsl', 'ubuntu-wsl', 'k9s', 'kind', 'flux', 'tflint', 'sops')
     foreach ($packageId in $expectedUnsupportedRuntimeIds) {
         $sourcePackage = $packagesV2.packages | Where-Object { $_.key -eq $packageId } | Select-Object -First 1
         Assert-True ($sourcePackage.platforms.ubuntu.support -eq 'unsupported') "Package '$packageId' must remain explicitly unsupported in the Ubuntu 24.04 runtime slice."

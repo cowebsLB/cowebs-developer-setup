@@ -128,6 +128,22 @@ try {
         recommendedPackIds = @()
         optionalPackIds = @()
     }
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-infra-supported'
+        name = 'Ubuntu supported Kubernetes, IaC, automation, and security slice'
+        extends = @()
+        packageIds = @('kubectl', 'helm', 'yq', 'kubectx', 'trivy', 'opentofu', 'terraform', 'vault', 'packer', 'task', 'age')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-infra-unsupported'
+        name = 'Ubuntu unsupported Windows-host, Kubernetes, IaC, and secrets diagnostics'
+        extends = @()
+        packageIds = @('wsl', 'ubuntu-wsl', 'k9s', 'kind', 'flux', 'tflint', 'sops')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
     $runtimeProfilesPath = Join-Path $tempRoot 'runtime-profile-catalog.v3.json'
     Write-Utf8Json -Value $runtimeProfiles -Path $runtimeProfilesPath
 
@@ -186,7 +202,39 @@ try {
     Assert-True ($productivityUnsupported.ExitCode -eq 1) 'The unsupported Ubuntu productivity slice must fail closed.'
     Assert-True ($productivityUnsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: dbeaver, mongodb-compass, mysql-workbench, figma, android-studio') 'Ubuntu productivity unsupported-package diagnostics changed or omitted selected intent.'
 
-    Write-Host 'PASS: Ubuntu core, runtime, and productivity-slice compilation, typed repository planning, deterministic JSON, and fail-closed diagnostics.' -ForegroundColor Green
+    $infraArguments = @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-infra-supported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    $infraFirst = Invoke-Native -FilePath $cliPath -Arguments $infraArguments
+    $infraSecond = Invoke-Native -FilePath $cliPath -Arguments $infraArguments
+    Assert-True ($infraFirst.ExitCode -eq 0 -and $infraSecond.ExitCode -eq 0) "Ubuntu infrastructure slice failed: $($infraFirst.Stderr)$($infraSecond.Stderr)"
+    Assert-True ($infraFirst.Stdout -ceq $infraSecond.Stdout) 'Ubuntu infrastructure slice plan JSON is not byte-deterministic.'
+    $infraPlan = $infraFirst.Stdout | ConvertFrom-Json
+    $infraInstalls = @($infraPlan.operations | Where-Object { $_.kind -eq 'install' })
+    Assert-True ($infraInstalls.Count -eq 22) 'Ubuntu infrastructure slice must contain the 11 core installs plus eleven reviewed installs.'
+    Assert-True (($infraInstalls[-11..-1].logicalPackageId -join ',') -eq 'kubectl,helm,yq,kubectx,trivy,opentofu,terraform,vault,packer,task,age') 'Ubuntu infrastructure install order changed.'
+    foreach ($packageId in @('kubectl', 'helm', 'opentofu', 'task')) {
+        $install = $infraInstalls | Where-Object { $_.logicalPackageId -eq $packageId } | Select-Object -First 1
+        Assert-True ($install.manager -eq 'snap' -and ($install.installOptions -join ',') -eq '--classic') "Package '$packageId' must use its reviewed classic Snap provider."
+    }
+    $hashicorpInstalls = @($infraInstalls | Where-Object { $_.logicalPackageId -in @('terraform', 'vault', 'packer') })
+    Assert-True ($hashicorpInstalls.Count -eq 3 -and @($hashicorpInstalls | Where-Object { ($_.dependsOn -join ',') -notmatch 'prerequisite:apt-get:refresh' }).Count -eq 0) 'All HashiCorp installs must share the typed APT refresh dependency.'
+    $infraPrerequisites = @($infraPlan.operations | Where-Object { $_.kind -in @('ensure-repository-key', 'ensure-apt-repository', 'refresh-package-index') })
+    Assert-True (@($infraPrerequisites | Where-Object { $_.kind -eq 'ensure-repository-key' }).Count -eq 3) 'The infrastructure plan must include GitHub, Trivy, and HashiCorp repository keys.'
+    Assert-True (@($infraPrerequisites | Where-Object { $_.kind -eq 'ensure-apt-repository' }).Count -eq 3) 'The infrastructure plan must include GitHub, Trivy, and HashiCorp repositories.'
+    Assert-True (@($infraPrerequisites | Where-Object { $_.kind -eq 'refresh-package-index' }).Count -eq 1) 'All infrastructure APT prerequisites must share one package-index refresh.'
+
+    $infraUnsupported = Invoke-Native -FilePath $cliPath -Arguments @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-infra-unsupported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    Assert-True ($infraUnsupported.ExitCode -eq 1) 'The unsupported Ubuntu infrastructure slice must fail closed.'
+    Assert-True ($infraUnsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: wsl, ubuntu-wsl, k9s, docker, kind, flux, tflint, sops') 'Ubuntu infrastructure unsupported-package diagnostics changed or omitted selected dependency intent.'
+
+    Write-Host 'PASS: Ubuntu core, runtime, productivity, and infrastructure-slice compilation, typed repository planning, deterministic JSON, and fail-closed diagnostics.' -ForegroundColor Green
 } finally {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }
 }

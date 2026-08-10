@@ -6,6 +6,9 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
+- Classified the next 18 Ubuntu host-platform, Kubernetes, IaC, automation, secrets, and encryption tools: eleven reviewed executable providers and seven explicit unsupported results.
+- Added exact Ubuntu providers for kubectl, Helm, Mike Farah yq, kubectx, Trivy, OpenTofu, Terraform, Vault, Packer, Task, and age; WSL intent remains Windows-only and artifact/script-only tools remain fail-closed.
+- Added reusable digest-pinned Trivy and HashiCorp APT prerequisites, with Terraform, Vault, and Packer sharing one repository and one package-index refresh.
 - Classified the next 14 Ubuntu 24.04 database, API-client, browser, networking, design, and Android tools: nine reviewed executable providers and five explicit unsupported results for unmodeled artifacts, interactive repository setup, or an unavailable native Linux desktop application.
 - Added PostgreSQL 18, Bruno, Postman, Redis Insight, Google Chrome, Firefox, Cloudflare Tunnel, ngrok, and scrcpy Ubuntu providers with exact manager, source, scope, architecture, and conservative estimate contracts.
 - Added four more typed, SHA-256-pinned APT repository prerequisites for PostgreSQL, Google Chrome, Cloudflare Tunnel, and ngrok while preserving one de-duplicated package-index refresh per plan.
@@ -21,6 +24,7 @@ All notable changes follow semantic versioning.
 
 ### Added
 
+- Added deterministic Ubuntu Kubernetes/IaC/security planning coverage for eleven executable providers, four reviewed classic snaps, shared HashiCorp prerequisites, and complete dependency-aware unsupported diagnostics.
 - Added deterministic Ubuntu productivity/tooling-slice planning coverage for nine executable providers, five signed repositories including the core GitHub prerequisite, one shared APT refresh, Flathub user scope, and complete ordered unsupported diagnostics.
 - Added deterministic Ubuntu runtime-slice planning coverage for the five executable providers and complete ordered fail-closed diagnostics for selected script-, artifact-, version-, and Corepack-dependent tools.
 - Added a deterministic full 11-package Ubuntu x64 core plan and safe Linux prerequisite dry-run rendering for the official GitHub CLI repository.
@@ -31,6 +35,8 @@ All notable changes follow semantic versioning.
 
 ### Security
 
+- Refused to reinterpret Windows-only WSL packages on Ubuntu or execute K9s, kind, Flux, TFLint, and SOPS release artifacts or installer scripts before verified artifact handling exists.
+- Pinned current Trivy and HashiCorp repository-key bytes by SHA-256 and kept Vault initialization/authentication outside package installation intent.
 - Refused downloaded DBeaver and MongoDB Compass packages, interactive MySQL APT setup, unofficial Figma desktop wrappers, and Android Studio archive/setup automation until verified artifact, consent, and interactive-setup handlers exist.
 - Pinned four additional official repository keys by current SHA-256 and kept ngrok account authentication and Cloudflare tunnel login outside package installation intent.
 - Refused to substitute Ubuntu 24.04's Python 3.12 or PHP 8.3 for the catalog's requested Python 3.14 and PHP 8.4, and refused network-script, downloaded-DEB, and user-scoped Corepack execution until typed verified handlers exist.
