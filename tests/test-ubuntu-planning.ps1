@@ -112,6 +112,22 @@ try {
         recommendedPackIds = @()
         optionalPackIds = @()
     }
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-productivity-supported'
+        name = 'Ubuntu supported database, client, browser, networking, and Android slice'
+        extends = @()
+        packageIds = @('postgresql', 'bruno', 'postman', 'redis-insight', 'chrome', 'firefox', 'cloudflared', 'ngrok', 'scrcpy')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
+    $runtimeProfiles.profiles += [pscustomobject][ordered]@{
+        id = 'ubuntu-productivity-unsupported'
+        name = 'Ubuntu unsupported database, client, design, and Android diagnostics'
+        extends = @()
+        packageIds = @('dbeaver', 'mongodb-compass', 'mysql-workbench', 'figma', 'android-studio')
+        recommendedPackIds = @()
+        optionalPackIds = @()
+    }
     $runtimeProfilesPath = Join-Path $tempRoot 'runtime-profile-catalog.v3.json'
     Write-Utf8Json -Value $runtimeProfiles -Path $runtimeProfilesPath
 
@@ -140,7 +156,37 @@ try {
     Assert-True ($runtimeUnsupported.ExitCode -eq 1) 'The unsupported Ubuntu runtime slice must fail closed.'
     Assert-True ($runtimeUnsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: python, ruff, php, bun, deno, yarn, pnpm, docker') 'Ubuntu runtime unsupported-package diagnostics changed or omitted selected intent.'
 
-    Write-Host 'PASS: Ubuntu core and runtime-slice compilation, typed repository planning, deterministic JSON, and fail-closed diagnostics.' -ForegroundColor Green
+    $productivityArguments = @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-productivity-supported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    $productivityFirst = Invoke-Native -FilePath $cliPath -Arguments $productivityArguments
+    $productivitySecond = Invoke-Native -FilePath $cliPath -Arguments $productivityArguments
+    Assert-True ($productivityFirst.ExitCode -eq 0 -and $productivitySecond.ExitCode -eq 0) "Ubuntu productivity slice failed: $($productivityFirst.Stderr)$($productivitySecond.Stderr)"
+    Assert-True ($productivityFirst.Stdout -ceq $productivitySecond.Stdout) 'Ubuntu productivity slice plan JSON is not byte-deterministic.'
+    $productivityPlan = $productivityFirst.Stdout | ConvertFrom-Json
+    $productivityInstalls = @($productivityPlan.operations | Where-Object { $_.kind -eq 'install' })
+    Assert-True ($productivityInstalls.Count -eq 20) 'Ubuntu productivity slice must contain the 11 core installs plus nine reviewed installs.'
+    Assert-True (($productivityInstalls[-9..-1].logicalPackageId -join ',') -eq 'postgresql,bruno,postman,redis-insight,chrome,firefox,cloudflared,ngrok,scrcpy') 'Ubuntu productivity install order changed.'
+    $brunoInstall = $productivityInstalls | Where-Object { $_.logicalPackageId -eq 'bruno' } | Select-Object -First 1
+    Assert-True ($brunoInstall.manager -eq 'flatpak' -and $brunoInstall.source -eq 'flathub' -and $brunoInstall.scope -eq 'user') 'Bruno must use the reviewed user-scoped Flathub provider.'
+    $redisInsightInstall = $productivityInstalls | Where-Object { $_.logicalPackageId -eq 'redis-insight' } | Select-Object -First 1
+    Assert-True ($redisInsightInstall.manager -eq 'snap' -and $redisInsightInstall.packageId -eq 'redisinsight') 'Redis Insight must use its documented Snap provider.'
+    $productivityPrerequisites = @($productivityPlan.operations | Where-Object { $_.kind -in @('ensure-repository-key', 'ensure-apt-repository', 'refresh-package-index') })
+    Assert-True (@($productivityPrerequisites | Where-Object { $_.kind -eq 'ensure-repository-key' }).Count -eq 5) 'The productivity plan must include the core GitHub key plus four slice repository keys.'
+    Assert-True (@($productivityPrerequisites | Where-Object { $_.kind -eq 'ensure-apt-repository' }).Count -eq 5) 'The productivity plan must include the core GitHub repository plus four slice repositories.'
+    Assert-True (@($productivityPrerequisites | Where-Object { $_.kind -eq 'refresh-package-index' }).Count -eq 1) 'All Ubuntu APT prerequisites must share one package-index refresh.'
+
+    $productivityUnsupported = Invoke-Native -FilePath $cliPath -Arguments @(
+        'plan', '--packages', (Join-Path $compiled 'package-catalog.v3.json'),
+        '--profiles', $runtimeProfilesPath, '--profile', 'ubuntu-productivity-unsupported',
+        '--platform', 'ubuntu', '--architecture', 'x64', '--json'
+    )
+    Assert-True ($productivityUnsupported.ExitCode -eq 1) 'The unsupported Ubuntu productivity slice must fail closed.'
+    Assert-True ($productivityUnsupported.Stderr.Trim() -eq 'ERROR: unsupported packages for ubuntu/x64: dbeaver, mongodb-compass, mysql-workbench, figma, android-studio') 'Ubuntu productivity unsupported-package diagnostics changed or omitted selected intent.'
+
+    Write-Host 'PASS: Ubuntu core, runtime, and productivity-slice compilation, typed repository planning, deterministic JSON, and fail-closed diagnostics.' -ForegroundColor Green
 } finally {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }
 }

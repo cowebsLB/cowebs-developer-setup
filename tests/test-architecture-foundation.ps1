@@ -122,14 +122,24 @@ try {
     }
 
     $ubuntuMappings = @($packagesV2.packages | Where-Object { $null -ne (Get-OptionalValue $_.platforms 'ubuntu') })
-    Assert-True ($ubuntuMappings.Count -eq 26) 'The Ubuntu compatibility catalog must classify the 11 core packages and 15 language/runtime/container packages.'
-    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 10) 'The runtime slice must preserve all ten reviewed unsupported results.'
-    Assert-True (@($packagesV3.prerequisites).Count -eq 1) 'The compiler must emit exactly one bounded Ubuntu prerequisite.'
-    $githubPrerequisite = @($packagesV3.prerequisites)[0]
+    Assert-True ($ubuntuMappings.Count -eq 40) 'The Ubuntu compatibility catalog must classify the 11 core packages, 15 language/runtime/container packages, and 14 database/client/browser/networking/Android packages.'
+    Assert-True (@($ubuntuMappings | Where-Object { $_.platforms.ubuntu.support -eq 'unsupported' }).Count -eq 15) 'The reviewed Ubuntu slices must preserve all fifteen explicit unsupported results.'
+    Assert-True (@($packagesV3.prerequisites).Count -eq 5) 'The compiler must emit exactly five bounded Ubuntu prerequisites.'
+    $githubPrerequisite = @($packagesV3.prerequisites | Where-Object { $_.id -eq 'github-cli-apt' })[0]
     Assert-True ($githubPrerequisite.id -eq 'github-cli-apt' -and $githubPrerequisite.type -eq 'apt-repository') 'GitHub CLI prerequisite identity changed.'
     Assert-True ($githubPrerequisite.keyringSha256 -eq '6084d5d7bd8e288441e0e94fc6275570895da18e6751f70f057485dc2d1a811b') 'GitHub CLI keyring digest changed.'
     $githubCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'github-cli' } | Select-Object -First 1
     Assert-True ((@($githubCompiled.providers.ubuntu)[0].prerequisiteIds -join ',') -eq 'github-cli-apt') 'GitHub CLI provider must reference its typed APT prerequisite.'
+    $expectedPrerequisiteDigests = [ordered]@{
+        'postgresql-pgdg-apt' = '0144068502a1eddd2a0280ede10ef607d1ec592ce819940991203941564e8e76'
+        'google-chrome-apt' = '54dea5f6c2a26091578cf52a999cebc6b64df478d37ad4dce96376b711e3b27c'
+        'cloudflared-apt' = '1bd95f4082b320d541bee351560fc2765aa9f9cd8efa4c9e32135e63f252721d'
+        'ngrok-apt' = '8a57c28e1779e2a8e5bba3865fffd6805e15898988c235eae862f3069c3f2c28'
+    }
+    foreach ($entry in $expectedPrerequisiteDigests.GetEnumerator()) {
+        $prerequisite = $packagesV3.prerequisites | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
+        Assert-True ($null -ne $prerequisite -and $prerequisite.keyringSha256 -eq $entry.Value) "Ubuntu prerequisite '$($entry.Key)' is missing or changed digest."
+    }
     $expectedUbuntuProviders = [ordered]@{
         'git' = @('apt-get', 'git'); 'github-cli' = @('apt-get', 'gh'); 'vscode' = @('snap', 'code'); 'powershell' = @('snap', 'powershell')
         'windows-terminal' = @('apt-get', 'gnome-terminal'); 'seven-zip' = @('apt-get', '7zip')
@@ -137,19 +147,26 @@ try {
         'git-lfs' = @('apt-get', 'git-lfs'); 'openssl' = @('apt-get', 'openssl')
         'node' = @('apt-get', 'nodejs'); 'openjdk' = @('apt-get', 'openjdk-21-jdk')
         'dotnet-sdk' = @('apt-get', 'dotnet-sdk-10.0'); 'go' = @('snap', 'go'); 'rustup' = @('apt-get', 'rustup')
+        'postgresql' = @('apt-get', 'postgresql-18'); 'bruno' = @('flatpak', 'com.usebruno.Bruno')
+        'postman' = @('snap', 'postman'); 'redis-insight' = @('snap', 'redisinsight')
+        'chrome' = @('apt-get', 'google-chrome-stable'); 'firefox' = @('snap', 'firefox')
+        'cloudflared' = @('apt-get', 'cloudflared'); 'ngrok' = @('apt-get', 'ngrok'); 'scrcpy' = @('apt-get', 'scrcpy')
     }
     foreach ($entry in $expectedUbuntuProviders.GetEnumerator()) {
         $compiled = $packagesV3.packages | Where-Object { $_.id -eq $entry.Key } | Select-Object -First 1
         $provider = @($compiled.providers.ubuntu)[0]
         Assert-True ($provider.manager -eq $entry.Value[0] -and $provider.packageId -eq $entry.Value[1]) "Package '$($entry.Key)' has an unexpected Ubuntu provider."
-        Assert-True ($provider.privilege -eq 'elevated' -and $provider.scope -eq 'machine') "Package '$($entry.Key)' Ubuntu provider must use elevated machine scope."
-        $expectedArchitectures = if ($entry.Key -in @('vscode', 'powershell')) { 'x64' } else { 'x64,arm64' }
+        $expectedPrivilege = if ($entry.Key -eq 'bruno') { 'user,user' } else { 'elevated,machine' }
+        Assert-True (("$($provider.privilege),$($provider.scope)") -eq $expectedPrivilege) "Package '$($entry.Key)' Ubuntu provider has an unexpected privilege or scope."
+        $expectedArchitectures = if ($entry.Key -in @('vscode', 'powershell', 'bruno', 'redis-insight')) { 'x64' } else { 'x64,arm64' }
         Assert-True (($provider.architectures -join ',') -eq $expectedArchitectures) "Package '$($entry.Key)' Ubuntu architectures changed."
         Assert-True ($provider.detection.type -eq 'manager-native') "Package '$($entry.Key)' Ubuntu detection must be manager-native."
     }
     $goCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'go' } | Select-Object -First 1
     Assert-True ((@($goCompiled.providers.ubuntu)[0].installOptions -join ',') -eq '--classic') 'Go must retain its typed classic Snap option.'
-    $expectedUnsupportedRuntimeIds = @('python', 'uv', 'ruff', 'miniconda', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker')
+    $brunoCompiled = $packagesV3.packages | Where-Object { $_.id -eq 'bruno' } | Select-Object -First 1
+    Assert-True ((@($brunoCompiled.providers.ubuntu)[0].source) -eq 'flathub') 'Bruno must retain its explicit Flathub source.'
+    $expectedUnsupportedRuntimeIds = @('python', 'uv', 'ruff', 'miniconda', 'php', 'bun', 'deno', 'yarn', 'pnpm', 'docker', 'dbeaver', 'mongodb-compass', 'mysql-workbench', 'figma', 'android-studio')
     foreach ($packageId in $expectedUnsupportedRuntimeIds) {
         $sourcePackage = $packagesV2.packages | Where-Object { $_.key -eq $packageId } | Select-Object -First 1
         Assert-True ($sourcePackage.platforms.ubuntu.support -eq 'unsupported') "Package '$packageId' must remain explicitly unsupported in the Ubuntu 24.04 runtime slice."

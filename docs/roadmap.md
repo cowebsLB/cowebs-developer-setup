@@ -7,7 +7,7 @@
 | Windows v6.2.0 | Released and verified | Schema v2 plus `src/windows/setup.ps1` |
 | Go planner and schema v3 | Source-only, parity proven | Not included in the public runtime ZIP |
 | Windows Go adapter and broker | Source-only, tested | Runtime cutover still gated on real-install validation and controller-owned elevation |
-| Ubuntu/Fedora adapter | Ubuntu full x64 core plus bounded runtime planning; Fedora adapter foundation | 26 Ubuntu classifications; typed prerequisites are dry-run-only; no Linux broker or Unix bootstrap yet |
+| Ubuntu/Fedora adapter | Ubuntu full x64 core plus bounded runtime and productivity/tooling planning; Fedora adapter foundation | 40 Ubuntu classifications; typed prerequisites are dry-run-only; no Linux broker or Unix bootstrap yet |
 | Public `cowebs` CLI | Planned product surface | Existing `cowebs-setup` remains the source-only development engine |
 | macOS | Planned after the Linux path | No adapter or provider catalog yet |
 
@@ -46,8 +46,9 @@
 - [x] Prove the full 11-package Ubuntu x64 core plan through compilation, planning, detection, dry-run rendering, and deterministic JSON.
 - [x] Model the official GitHub CLI signed APT repository as typed, digest-pinned catalog data and emit one de-duplicated package-index refresh; keep real mutation disabled pending Phase 4 orchestration.
 - [x] Classify the 15-package language/runtime/container slice with native Node.js, OpenJDK 21, .NET SDK 10, and Rustup providers, a conditional Canonical Go snap, and ten explicit unsupported results for unmodeled version, artifact, or user-configuration paths.
+- [x] Classify the 14-package database/client/browser/networking/design/Android slice with nine exact providers and five explicit unsupported results; cover PostgreSQL, Chrome, Cloudflare, and ngrok repositories with digest-pinned typed prerequisites.
 - [ ] Map supported configuration intents to Linux-specific implementations; leave unsupported configuration explicit.
-- [x] Validate the core providers and GitHub CLI keyring digest against official Ubuntu, Snap, and GitHub sources without installing on the developer workstation.
+- [x] Validate the first 40 classifications, five keyring digests, Snap/Flathub architecture availability, and repository package indexes against current primary sources without installing on the developer workstation.
 
 ### Phase 3: Fedora catalog and planning
 
@@ -139,4 +140,4 @@
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The immediate implementation sequence is to classify and map the remaining 60 Ubuntu packages, extending typed prerequisites only where reviewed providers require them, then implement Linux-specific configuration intents. Real repository writes and APT refresh stay blocked until Phase 4 supplies atomic mutation and one elevated controller handoff. Fedora should reuse the proven compiler, diagnostic, and full-core plan path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.
+The immediate implementation sequence is to classify and map the remaining 46 Ubuntu packages, extending typed prerequisites only where reviewed providers require them, then implement Linux-specific configuration intents. Real repository writes and APT refresh stay blocked until Phase 4 supplies atomic mutation and one elevated controller handoff. Fedora should reuse the proven compiler, diagnostic, and full-core plan path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.
