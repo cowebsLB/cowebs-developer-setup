@@ -57,6 +57,7 @@ All notable changes follow semantic versioning.
 - Fixed Fedora disposable provisioning treating cloud-init's recoverable container status as an application failure; readiness is now bounded by the required DNF runtime.
 - Fixed the Fedora disposable safety flags being removed by `sudo` by assigning them explicitly in the unprivileged validation process environment.
 - Added bounded failure-only Snap state and system-journal diagnostics to the disposable Fedora gate.
+- Moved the Fedora guarded real-install gate from a shared-kernel LXD system container to an isolated LXD virtual machine after Snap's generated SquashFS mount unit proved the container was not an equivalent environment.
 
 ### Testing
 

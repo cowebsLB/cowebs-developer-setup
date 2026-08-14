@@ -67,9 +67,9 @@ jobs:
         uses: canonical/setup-lxd@da2ac84e727dc534215fd14cd088b9209d65893b
         with:
           channel: 5.21/stable
-      - name: Provision Fedora 44 system container and RPM
+      - name: Provision Fedora 44 virtual machine and RPM
         run: |
-          lxc launch images:fedora/44/cloud cowebs-fedora44 -c security.nesting=true
+          lxc launch images:fedora/44/cloud cowebs-fedora44 --vm -c security.secureboot=false -c limits.memory=4GiB
           lxc exec cowebs-fedora44 -- bash -lc 'for attempt in {1..30}; do dnf --version >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
           lxc exec cowebs-fedora44 -- dnf -y install rpm-build sudo
           lxc exec cowebs-fedora44 -- mkdir -p /workspace/scripts /workspace/packaging/rpm /workspace/build/bundle/catalog /workspace/dist/linux-packages
@@ -94,6 +94,6 @@ jobs:
             lxc exec cowebs-fedora44 -- journalctl --unit=snapd --no-pager --lines=100 || true
             exit 1
           fi
-      - name: Remove disposable Fedora container
+      - name: Remove disposable Fedora virtual machine
         if: always()
         run: lxc delete --force cowebs-fedora44 || true
