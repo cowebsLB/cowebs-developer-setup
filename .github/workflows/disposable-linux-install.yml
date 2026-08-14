@@ -70,7 +70,7 @@ jobs:
       - name: Provision Fedora 44 system container and RPM
         run: |
           lxc launch images:fedora/44/cloud cowebs-fedora44 -c security.nesting=true
-          lxc exec cowebs-fedora44 -- cloud-init status --wait
+          lxc exec cowebs-fedora44 -- bash -lc 'for attempt in {1..30}; do dnf --version >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
           lxc exec cowebs-fedora44 -- dnf -y install rpm-build sudo
           lxc exec cowebs-fedora44 -- mkdir -p /workspace/scripts /workspace/packaging/rpm /workspace/build/bundle/catalog /workspace/dist/linux-packages
           lxc file push ./scripts/build-linux-packages.sh cowebs-fedora44/workspace/scripts/build-linux-packages.sh

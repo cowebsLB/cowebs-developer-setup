@@ -54,6 +54,7 @@ All notable changes follow semantic versioning.
 - Fixed elevated Linux events being buffered until sudo exited; validated child events now persist as they stream so completed operations survive a later package failure and can be resumed.
 - Fixed Linux diagnostics claiming a missing optional manager would block a plan after native manager provisioning was implemented.
 - Allowed Debian and RPM preview packages to be built independently so each disposable distribution validates only its native format.
+- Fixed Fedora disposable provisioning treating cloud-init's recoverable container status as an application failure; readiness is now bounded by the required DNF runtime.
 
 ### Testing
 
