@@ -1,11 +1,18 @@
 package linux
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/cowebsLB/cowebs-developer-setup/internal/planner"
 )
@@ -16,9 +23,11 @@ const (
 )
 
 type Adapter struct {
-	Platform string
-	Paths    map[string]string
-	Runner   CommandRunner
+	Platform       string
+	Paths          map[string]string
+	Runner         CommandRunner
+	Downloader     Downloader
+	FilesystemRoot string
 }
 
 type CommandRunner interface {
@@ -26,6 +35,41 @@ type CommandRunner interface {
 }
 
 type DefaultRunner struct{}
+
+type Downloader interface {
+	Download(url string, maximumBytes int64) ([]byte, error)
+}
+
+type HTTPSDownloader struct {
+	Client *http.Client
+}
+
+func (d HTTPSDownloader) Download(address string, maximumBytes int64) ([]byte, error) {
+	client := d.Client
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	request, err := http.NewRequest(http.MethodGet, address, nil)
+	if err != nil {
+		return nil, err
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("download returned HTTP %d", response.StatusCode)
+	}
+	data, err := io.ReadAll(io.LimitReader(response.Body, maximumBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maximumBytes {
+		return nil, fmt.Errorf("download exceeds %d-byte limit", maximumBytes)
+	}
+	return data, nil
+}
 
 func (DefaultRunner) Run(name string, args ...string) (int, string, error) {
 	cmd := exec.Command(name, args...)
@@ -50,7 +94,8 @@ func NewAdapter(platform string) (*Adapter, error) {
 			"snap":       "snap",
 			"flatpak":    "flatpak",
 		},
-		Runner: DefaultRunner{},
+		Runner:     DefaultRunner{},
+		Downloader: HTTPSDownloader{},
 	}, nil
 }
 
@@ -131,12 +176,19 @@ func (a *Adapter) RenderPrerequisite(op planner.Operation) (string, error) {
 		return "", err
 	}
 	switch op.Kind {
+	case "ensure-manager":
+		return fmt.Sprintf("PLANNED: ensure %s package manager through the native distribution package", op.Manager), nil
+	case "ensure-flatpak-remote":
+		return fmt.Sprintf("PLANNED: ensure Flatpak remote %s -> %s", op.Source, op.URL), nil
 	case "ensure-repository-key":
 		return fmt.Sprintf("PLANNED: verify SHA-256 %s and install %s -> %s", op.SHA256, op.URL, op.TargetPath), nil
 	case "ensure-apt-repository":
 		line := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s %s", op.RepositoryArchitecture, op.KeyringPath, op.RepositoryBaseURL, op.RepositorySuite, strings.Join(op.RepositoryComponents, " "))
 		return fmt.Sprintf("PLANNED: write APT source %s -> %s", line, op.TargetPath), nil
 	case "refresh-package-index":
+		if op.Manager == "dnf" {
+			return fmt.Sprintf("PLANNED: %s -y makecache", a.path("dnf")), nil
+		}
 		return fmt.Sprintf("PLANNED: %s update", a.path("apt-get")), nil
 	default:
 		return "", fmt.Errorf("unsupported prerequisite operation kind %q", op.Kind)
@@ -148,10 +200,154 @@ func (a *Adapter) ExecutePrerequisite(op planner.Operation, dryRun bool) (int, s
 	if err != nil {
 		return 1, "", err
 	}
-	if !dryRun {
-		return 1, "", fmt.Errorf("real Linux prerequisite execution is not implemented")
+	if dryRun {
+		return 0, rendered, nil
+	}
+	switch op.Kind {
+	case "ensure-manager":
+		return a.ensureManager(op, rendered)
+	case "ensure-flatpak-remote":
+		args := []string{scopeArgument(op.Scope), "remote-add", "--if-not-exists", op.Source, op.URL}
+		exitCode, output, err := a.Runner.Run(a.path("flatpak"), args...)
+		if err != nil || exitCode != 0 {
+			return exitCode, "", fmt.Errorf("Flatpak remote setup failed: %w", err)
+		}
+		return exitCode, output, nil
+	case "ensure-repository-key":
+		if a.Downloader == nil {
+			return 1, "", fmt.Errorf("Linux prerequisite downloader is required")
+		}
+		data, err := a.Downloader.Download(op.URL, 10*1024*1024)
+		if err != nil {
+			return 1, "", fmt.Errorf("download repository key: %w", err)
+		}
+		digest := sha256.Sum256(data)
+		if hex.EncodeToString(digest[:]) != op.SHA256 {
+			return 1, "", fmt.Errorf("repository key SHA-256 mismatch")
+		}
+		if err := a.atomicWrite(op.TargetPath, data, 0o644); err != nil {
+			return 1, "", err
+		}
+	case "ensure-apt-repository":
+		line := fmt.Sprintf("deb [arch=%s signed-by=%s] %s %s %s\n", op.RepositoryArchitecture, op.KeyringPath, op.RepositoryBaseURL, op.RepositorySuite, strings.Join(op.RepositoryComponents, " "))
+		if err := a.atomicWrite(op.TargetPath, []byte(line), 0o644); err != nil {
+			return 1, "", err
+		}
+	case "refresh-package-index":
+		command := a.path("apt-get")
+		arguments := []string{"update"}
+		if op.Manager == "dnf" {
+			command, arguments = a.path("dnf"), []string{"-y", "makecache"}
+		}
+		exitCode, output, err := a.Runner.Run(command, arguments...)
+		if err != nil || exitCode != 0 {
+			return exitCode, "", fmt.Errorf("APT metadata refresh failed: %w", err)
+		}
+		return exitCode, output, nil
+	default:
+		return 1, "", fmt.Errorf("unsupported prerequisite operation kind %q", op.Kind)
 	}
 	return 0, rendered, nil
+}
+
+func (a *Adapter) ensureManager(op planner.Operation, rendered string) (int, string, error) {
+	exitCode, _, _ := a.Runner.Run(a.path(op.Manager), "--version")
+	if exitCode != 0 {
+		packageManager, arguments := a.managerInstallCommand(op.Manager)
+		exitCode, output, err := a.Runner.Run(packageManager, arguments...)
+		if err != nil || exitCode != 0 {
+			return exitCode, output, fmt.Errorf("install required manager %s: %w", op.Manager, err)
+		}
+	}
+	if op.Manager == "snap" {
+		exitCode, output, err := a.Runner.Run("systemctl", "enable", "--now", "snapd.socket")
+		if err != nil || exitCode != 0 {
+			return exitCode, output, fmt.Errorf("activate snapd socket: %w", err)
+		}
+		if a.Platform == PlatformFedora {
+			if err := a.ensureFedoraSnapMount(); err != nil {
+				return 1, "", err
+			}
+		}
+		exitCode, output, err = a.Runner.Run(a.path("snap"), "wait", "system", "seed.loaded")
+		if err != nil || exitCode != 0 {
+			return exitCode, output, fmt.Errorf("wait for snapd seed: %w", err)
+		}
+	}
+	return 0, rendered, nil
+}
+
+func (a *Adapter) managerInstallCommand(manager string) (string, []string) {
+	packageID := map[string]string{"snap": "snapd", "flatpak": "flatpak"}[manager]
+	if a.Platform == PlatformUbuntu {
+		return a.path("apt-get"), []string{"install", "--yes", "--no-install-recommends", packageID}
+	}
+	return a.path("dnf"), []string{"-y", "install", packageID}
+}
+
+func (a *Adapter) ensureFedoraSnapMount() error {
+	linkPath := "/snap"
+	targetPath := "/var/lib/snapd/snap"
+	if a.FilesystemRoot != "" {
+		linkPath = filepath.Join(a.FilesystemRoot, "snap")
+		targetPath = filepath.Join(a.FilesystemRoot, "var", "lib", "snapd", "snap")
+	}
+	if _, err := os.Lstat(linkPath); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("inspect Fedora snap mount link: %w", err)
+	}
+	if err := os.Symlink(targetPath, linkPath); err != nil {
+		return fmt.Errorf("create Fedora snap mount link: %w", err)
+	}
+	return nil
+}
+
+func (a *Adapter) atomicWrite(target string, data []byte, mode os.FileMode) error {
+	resolved := target
+	if a.FilesystemRoot != "" {
+		resolved = filepath.Join(a.FilesystemRoot, filepath.FromSlash(strings.TrimPrefix(target, "/")))
+	}
+	directory := filepath.Dir(resolved)
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		return fmt.Errorf("create prerequisite directory: %w", err)
+	}
+	temporary, err := os.CreateTemp(directory, ".cowebs-setup-*")
+	if err != nil {
+		return fmt.Errorf("create prerequisite temporary file: %w", err)
+	}
+	temporaryName := temporary.Name()
+	committed := false
+	defer func() {
+		if !committed {
+			_ = os.Remove(temporaryName)
+		}
+	}()
+	if err := temporary.Chmod(mode); err == nil {
+		_, err = temporary.Write(data)
+	}
+	if err == nil {
+		err = temporary.Sync()
+	}
+	if closeErr := temporary.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return fmt.Errorf("write prerequisite temporary file: %w", err)
+	}
+	if existing, readErr := os.ReadFile(resolved); readErr == nil && string(existing) == string(data) {
+		committed = true
+		_ = os.Remove(temporaryName)
+		return nil
+	}
+	if err := os.Rename(temporaryName, resolved); err != nil {
+		_ = os.Remove(resolved)
+		if retryErr := os.Rename(temporaryName, resolved); retryErr != nil {
+			return fmt.Errorf("commit prerequisite file: %w", retryErr)
+		}
+	}
+	committed = true
+	return nil
 }
 
 func (a *Adapter) detectionCommand(op planner.Operation) (string, []string, error) {
@@ -233,7 +429,31 @@ func (a *Adapter) validatePrerequisiteOperation(op planner.Operation) error {
 	if a == nil || a.Runner == nil {
 		return fmt.Errorf("Linux adapter and command runner are required")
 	}
-	if a.Platform != PlatformUbuntu {
+	if op.Kind == "ensure-manager" {
+		if op.Manager != "snap" && op.Manager != "flatpak" {
+			return fmt.Errorf("manager prerequisite operation %s has unsupported manager", op.ID)
+		}
+		if op.Privilege != "elevated" || op.Scope != "machine" {
+			return fmt.Errorf("manager prerequisite %s requires elevated machine scope", op.ID)
+		}
+		return nil
+	}
+	if op.Kind == "ensure-flatpak-remote" {
+		if op.Manager != "flatpak" || op.Source == "" {
+			return fmt.Errorf("Flatpak remote prerequisite %s requires a typed manager and source", op.ID)
+		}
+		if err := validatePositionalToken("flatpak remote source", op.ID, op.Source); err != nil {
+			return err
+		}
+		if err := validateHTTPSURL("Flatpak remote URL", op.ID, op.URL); err != nil {
+			return err
+		}
+		if !((op.Privilege == "user" && op.Scope == "user") || (op.Privilege == "elevated" && op.Scope == "machine")) {
+			return fmt.Errorf("Flatpak remote prerequisite %s has invalid privilege and scope", op.ID)
+		}
+		return nil
+	}
+	if op.Kind != "refresh-package-index" && a.Platform != PlatformUbuntu {
 		return fmt.Errorf("APT prerequisite operation %s requires Ubuntu", op.ID)
 	}
 	if op.Privilege != "elevated" || op.Scope != "machine" {
@@ -272,7 +492,7 @@ func (a *Adapter) validatePrerequisiteOperation(op planner.Operation) error {
 			return fmt.Errorf("prerequisite operation %s has unsafe APT paths", op.ID)
 		}
 	case "refresh-package-index":
-		if op.Manager != "apt-get" {
+		if !((a.Platform == PlatformUbuntu && op.Manager == "apt-get") || (a.Platform == PlatformFedora && op.Manager == "dnf")) {
 			return fmt.Errorf("prerequisite operation %s has invalid refresh manager", op.ID)
 		}
 	default:

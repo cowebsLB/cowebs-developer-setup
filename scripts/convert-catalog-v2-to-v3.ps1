@@ -2,6 +2,7 @@
 param(
     [string]$PackagesPath,
     [string]$ProfilesPath,
+    [string]$FedoraMappingsPath,
     [Parameter(Mandatory = $true)]
     [string]$OutputDirectory
 )
@@ -12,6 +13,7 @@ Set-StrictMode -Version 2.0
 $projectRoot = Split-Path -Parent $PSScriptRoot
 if (-not $PackagesPath) { $PackagesPath = Join-Path $projectRoot 'config\packages.json' }
 if (-not $ProfilesPath) { $ProfilesPath = Join-Path $projectRoot 'config\profiles.json' }
+if (-not $FedoraMappingsPath) { $FedoraMappingsPath = Join-Path $projectRoot 'config\fedora-packages.json' }
 
 function Get-OptionalValue {
     param($Object, [string]$Name)
@@ -103,13 +105,14 @@ function Convert-Estimate {
     }
 }
 
-function Convert-UbuntuProvider {
-    param($Mapping, [string]$PackageId, $KnownPrerequisites, $PrerequisitesById)
-    $context = "Package '$PackageId' Ubuntu mapping"
+function Convert-LinuxProvider {
+    param($Mapping, [string]$PackageId, [string]$Platform, $KnownPrerequisites, $PrerequisitesById, $EstimatePolicies)
+    $platformLabel = (Get-Culture).TextInfo.ToTitleCase($Platform)
+    $context = "Package '$PackageId' $platformLabel mapping"
     Assert-OnlyProperties -Object $Mapping -Allowed @(
-        'support', 'reason', 'condition', 'alternativeName',
+        'key', 'support', 'reason', 'condition', 'alternativeName',
         'manager', 'packageId', 'source', 'privilege', 'scope',
-        'architectures', 'prerequisiteIds', 'installOptions', 'estimate'
+        'architectures', 'prerequisiteIds', 'installOptions', 'estimate', 'estimatePolicy'
     ) -Context $context
 
     $support = [string](Get-OptionalValue -Object $Mapping -Name 'support')
@@ -118,7 +121,7 @@ function Convert-UbuntuProvider {
     }
     if ($support -eq 'unsupported') {
         Assert-NonEmptyText -Value (Get-OptionalValue -Object $Mapping -Name 'reason') -Context "$context reason"
-        foreach ($field in @('manager', 'packageId', 'source', 'privilege', 'scope', 'architectures', 'prerequisiteIds', 'installOptions', 'estimate', 'condition', 'alternativeName')) {
+        foreach ($field in @('manager', 'packageId', 'source', 'privilege', 'scope', 'architectures', 'prerequisiteIds', 'installOptions', 'estimate', 'estimatePolicy', 'condition', 'alternativeName')) {
             if ($Mapping.PSObject.Properties[$field]) { throw "$context marked unsupported must not define provider field '$field'." }
         }
         return $null
@@ -137,7 +140,8 @@ function Convert-UbuntuProvider {
     }
 
     $manager = [string](Get-OptionalValue -Object $Mapping -Name 'manager')
-    if (@('apt-get', 'snap', 'flatpak') -notcontains $manager) { throw "$context uses unsupported manager '$manager'." }
+    $allowedManagers = if ($Platform -eq 'ubuntu') { @('apt-get', 'snap', 'flatpak') } else { @('dnf', 'snap', 'flatpak') }
+    if ($allowedManagers -notcontains $manager) { throw "$context uses unsupported manager '$manager'." }
     $providerPackageId = Get-OptionalValue -Object $Mapping -Name 'packageId'
     Assert-NonEmptyText -Value $providerPackageId -Context "$context packageId"
     if ([string]$providerPackageId -notmatch '^[A-Za-z0-9][A-Za-z0-9._+:-]*$') { throw "$context packageId contains unsupported characters." }
@@ -145,7 +149,7 @@ function Convert-UbuntuProvider {
     $privilege = [string](Get-OptionalValue -Object $Mapping -Name 'privilege')
     $scope = [string](Get-OptionalValue -Object $Mapping -Name 'scope')
     $source = Get-OptionalValue -Object $Mapping -Name 'source'
-    if ($manager -in @('apt-get', 'snap')) {
+    if ($manager -in @('apt-get', 'dnf', 'snap')) {
         if ($source) { throw "$context $manager provider must not define a custom source." }
         if ($privilege -ne 'elevated' -or $scope -ne 'machine') { throw "$context $manager provider must use elevated machine scope." }
     } else {
@@ -163,6 +167,7 @@ function Convert-UbuntuProvider {
 
     $prerequisiteIds = @()
     if ($Mapping.PSObject.Properties['prerequisiteIds']) {
+        if ($Platform -ne 'ubuntu') { throw "$context cannot reference Ubuntu APT prerequisites." }
         $prerequisiteIds = @(Get-TypedStringArray -Object $Mapping -Name 'prerequisiteIds' -Context $context)
         Assert-KnownIds -Ids $prerequisiteIds -KnownIds $KnownPrerequisites -Context "$context prerequisites"
         foreach ($prerequisiteId in $prerequisiteIds) {
@@ -173,7 +178,15 @@ function Convert-UbuntuProvider {
         }
     }
     $installOptions = @(Get-TypedStringArray -Object $Mapping -Name 'installOptions' -Context $context)
-    Assert-Estimate -Estimate (Get-OptionalValue -Object $Mapping -Name 'estimate') -Context $context
+    $estimate = Get-OptionalValue -Object $Mapping -Name 'estimate'
+    $estimatePolicy = [string](Get-OptionalValue -Object $Mapping -Name 'estimatePolicy')
+    if ($estimate -and $estimatePolicy) { throw "$context must use either estimate or estimatePolicy, not both." }
+    if ($estimatePolicy) {
+        $policyProperty = if ($EstimatePolicies) { $EstimatePolicies.PSObject.Properties[$estimatePolicy] } else { $null }
+        if (-not $policyProperty) { throw "$context references unknown estimate policy '$estimatePolicy'." }
+        $estimate = $policyProperty.Value
+    }
+    Assert-Estimate -Estimate $estimate -Context $context
 
     $provider = [ordered]@{
         manager = $manager
@@ -186,7 +199,7 @@ function Convert-UbuntuProvider {
     if ($prerequisiteIds.Count -gt 0) { $provider.prerequisiteIds = $prerequisiteIds }
     $provider.detection = [ordered]@{ type = 'manager-native' }
     $provider.installOptions = $installOptions
-    $provider.estimate = Convert-Estimate -Estimate $Mapping.estimate
+    $provider.estimate = Convert-Estimate -Estimate $estimate
     return [pscustomobject]$provider
 }
 
@@ -244,11 +257,25 @@ function Write-DeterministicJson {
 
 $packageCatalogV2 = Get-Content -LiteralPath $PackagesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $profileCatalogV2 = Get-Content -LiteralPath $ProfilesPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$fedoraCatalogV1 = Get-Content -LiteralPath $FedoraMappingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($packageCatalogV2.schemaVersion -ne 2) { throw 'Package catalog schema version 2 is required.' }
 if ($profileCatalogV2.schemaVersion -ne 2) { throw 'Profile catalog schema version 2 is required.' }
+if ($fedoraCatalogV1.schemaVersion -ne 1 -or $fedoraCatalogV1.platform -ne 'fedora') { throw 'Fedora compatibility catalog schema version 1 is required.' }
 
 $packageItemsV2 = @($packageCatalogV2.packages)
 $knownPackages = Assert-UniqueIds -Items $packageItemsV2 -PropertyName 'key' -Label 'Package catalog'
+$fedoraMappings = @($fedoraCatalogV1.mappings)
+$knownFedoraMappings = Assert-UniqueIds -Items $fedoraMappings -PropertyName 'key' -Label 'Fedora compatibility catalog'
+if ($knownFedoraMappings.Count -ne $knownPackages.Count) { throw "Fedora compatibility catalog must classify all $($knownPackages.Count) logical packages." }
+$fedoraMappingsById = @{}
+foreach ($mapping in $fedoraMappings) {
+    $key = [string]$mapping.key
+    if (-not $knownPackages.Contains($key)) { throw "Fedora compatibility catalog references unknown package '$key'." }
+    $fedoraMappingsById[$key] = $mapping
+}
+foreach ($package in $packageItemsV2) {
+    if (-not $knownFedoraMappings.Contains([string]$package.key)) { throw "Fedora compatibility catalog is missing package '$($package.key)'." }
+}
 foreach ($package in $packageItemsV2) {
     $packageId = [string]$package.key
     $dependencies = @(Get-StringArray -Object $package -Name 'requires')
@@ -307,9 +334,12 @@ foreach ($package in $packageItemsV2) {
     $providers = [ordered]@{ windows = @($provider) }
     $ubuntu = Get-OptionalValue -Object $package.platforms -Name 'ubuntu'
     if ($ubuntu) {
-        $ubuntuProvider = Convert-UbuntuProvider -Mapping $ubuntu -PackageId $packageId -KnownPrerequisites $knownUbuntuPrerequisites -PrerequisitesById $ubuntuPrerequisitesById
+        $ubuntuProvider = Convert-LinuxProvider -Mapping $ubuntu -PackageId $packageId -Platform 'ubuntu' -KnownPrerequisites $knownUbuntuPrerequisites -PrerequisitesById $ubuntuPrerequisitesById
         if ($null -ne $ubuntuProvider) { $providers.ubuntu = @($ubuntuProvider) }
     }
+    $fedoraMapping = $fedoraMappingsById[$packageId]
+    $fedoraProvider = Convert-LinuxProvider -Mapping $fedoraMapping -PackageId $packageId -Platform 'fedora' -KnownPrerequisites ([Collections.Generic.HashSet[string]]::new()) -PrerequisitesById @{} -EstimatePolicies $fedoraCatalogV1.estimatePolicies
+    if ($null -ne $fedoraProvider) { $providers.fedora = @($fedoraProvider) }
 
     $packageV3 = [ordered]@{
         id = $packageId

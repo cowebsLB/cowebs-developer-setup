@@ -4,6 +4,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $compilerPath = Join-Path $projectRoot 'scripts\convert-catalog-v2-to-v3.ps1'
 $packagesV2Path = Join-Path $projectRoot 'config\packages.json'
 $profilesV2Path = Join-Path $projectRoot 'config\profiles.json'
+$fedoraV1Path = Join-Path $projectRoot 'config\fedora-packages.json'
 $schemaRoot = Join-Path $projectRoot 'schema'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("cowebs-architecture-foundation-{0}" -f [guid]::NewGuid().ToString('N'))
 
@@ -68,6 +69,7 @@ try {
     Assert-True ($planSchemaText -notmatch '"(?:command|shell)"') 'Execution plans must not accept arbitrary command or shell fields.'
     Assert-True ($planSchemaText -match '"then"\s*:\s*\{\s*"required"\s*:\s*\["manager",\s*"packageId"\]') 'Detect/install operations must require a typed provider mapping.'
     Assert-True ($planSchemaText -match '"then"\s*:\s*\{\s*"required"\s*:\s*\["configurationIntent"\]') 'Configure operations must require a configuration intent.'
+    Assert-True ($planSchemaText -match '"ensure-manager"' -and $planSchemaText -match '"ensure-flatpak-remote"') 'Execution plans must model manager installation and Flatpak remote prerequisites as typed operations.'
 
     $outputOne = Join-Path $tempRoot 'one'
     $outputTwo = Join-Path $tempRoot 'two'
@@ -85,6 +87,13 @@ try {
     $profilesV3 = Get-Content -LiteralPath $resultOne.ProfileCatalog -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True ($packagesV3.schemaVersion -eq 3) 'Compiled package schema version must be 3.'
     Assert-True ($profilesV3.schemaVersion -eq 3) 'Compiled profile schema version must be 3.'
+    $fedoraV1 = Get-Content -LiteralPath $fedoraV1Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True (@($fedoraV1.mappings).Count -eq 86) 'Fedora compatibility input must classify all 86 logical packages.'
+    Assert-True (@($packagesV3.packages | Where-Object { $_.providers.fedora }).Count -eq 42) 'Compiler must emit all 42 reviewed Fedora executable providers.'
+    Assert-True (@($packagesV3.packages | Where-Object { -not $_.providers.fedora }).Count -eq 44) 'Compiler must preserve all 44 explicit Fedora unsupported results.'
+    Assert-True (($packagesV3.packages | Where-Object id -eq 'node').providers.fedora.packageId -eq 'nodejs24') 'Fedora Node.js must use the cross-release nodejs24 identity.'
+    Assert-True (-not ($packagesV3.packages | Where-Object id -eq 'openjdk').providers.fedora) 'Fedora OpenJDK 21 must fail closed across the Fedora 43/44 matrix.'
+    Assert-True (-not ($packagesV3.packages | Where-Object id -eq 'scrcpy').providers.fedora) 'Fedora scrcpy must fail closed without an official repository provider.'
 
     $compiledPackageIds = @($packagesV3.packages | ForEach-Object { $_.id })
     Assert-True (($compiledPackageIds | Sort-Object -Unique).Count -eq 86) 'Compiled package ids must be unique.'

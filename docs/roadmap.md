@@ -7,8 +7,8 @@
 | Windows v6.2.0 | Released and verified | Schema v2 plus `src/windows/setup.ps1` |
 | Go planner and schema v3 | Source-only, parity proven | Not included in the public runtime ZIP |
 | Windows Go adapter and broker | Source-only, tested | Runtime cutover still gated on real-install validation and controller-owned elevation |
-| Ubuntu/Fedora adapter | Complete Ubuntu package classification and deterministic bounded planning; Fedora adapter foundation | 86 Ubuntu classifications; typed prerequisites are dry-run-only; no Linux broker or Unix bootstrap yet |
-| Public `cowebs` CLI | Planned product surface | Existing `cowebs-setup` remains the source-only development engine |
+| Ubuntu/Fedora adapter | Complete classification, deterministic planning, and source-preview execution | Ubuntu 54/32 and live-validated Fedora 42/44 executable/unsupported; full real-install evidence pending |
+| Public `cowebs` CLI | Source-preview product surface implemented | Not published; Windows BAT and schema v2 remain production |
 | macOS | Planned after the Linux path | No adapter or provider catalog yet |
 
 ## Completed architecture foundation
@@ -49,54 +49,56 @@
 - [x] Classify the 14-package database/client/browser/networking/design/Android slice with nine exact providers and five explicit unsupported results; cover PostgreSQL, Chrome, Cloudflare, and ngrok repositories with digest-pinned typed prerequisites.
 - [x] Classify the 18-package host-platform/Kubernetes/IaC/automation/secrets slice with eleven exact providers and seven explicit unsupported results; share typed Trivy and HashiCorp repository prerequisites without duplicate refreshes.
 - [x] Classify the final 28 cloud/data/security/game packages with eighteen exact providers and ten explicit unsupported results; preserve GIMP 3 through Flathub, limit reviewed x64-only providers explicitly, and add typed Azure CLI, Google Cloud CLI, and Unity Hub repositories.
-- [ ] Map supported configuration intents to Linux-specific implementations; leave unsupported configuration explicit.
+- [x] Map supported configuration intents to Linux-specific implementations; keep authentication, account, license, and unsupported configuration explicit.
 - [x] Validate all 86 classifications, ten keyring digests, Snap/Flathub architecture availability, and repository package indexes against current primary sources without installing on the developer workstation.
 
-### Phase 3: Fedora catalog and planning
+### Phase 3: Fedora catalog and planning — complete
 
-- [ ] Reuse the same logical keys and provider contract; do not fork profile definitions.
-- [ ] Classify all packages for Fedora and add exact DNF, Snap, or Flatpak mappings with explicit unsupported results.
-- [ ] Emit deterministic Fedora providers from the compatibility compiler.
-- [ ] Prove a bounded Fedora profile/pack plan with the same parity, diagnostics, estimate, and deterministic-output standards as Ubuntu.
-- [ ] Validate mappings against official Fedora, Snap, and Flathub sources without mutating the developer workstation.
+- [x] Reuse the same logical keys and provider contract; do not fork profile definitions.
+- [x] Classify all packages for Fedora as 42 DNF/Snap/Flatpak providers and 44 explicit unsupported results.
+- [x] Emit deterministic Fedora providers from the compatibility compiler.
+- [x] Prove the full Fedora core plan plus unsupported profile diagnostics with deterministic-output standards.
+- [x] Validate mappings against official Fedora 43/44 x64/arm64 repositories, the Snapcraft API, and Flathub remote metadata without mutating the developer workstation; correct Node.js to `nodejs24` and fail closed for unavailable OpenJDK 21 and scrcpy providers.
 
-### Phase 4: Linux orchestration and least privilege
+### Phase 4: Linux orchestration and least privilege — source implementation complete
 
-- [ ] Extend diagnostics to identify the distribution, architecture, available managers, Flatpak installations/remotes, and missing prerequisites.
-- [ ] Add controller routing for Ubuntu and Fedora plans while keeping the Windows broker platform-locked.
-- [ ] Execute user-scoped Flatpak work without elevation and group machine-scoped work behind one explicit typed privileged handoff.
-- [ ] Refresh APT/DNF metadata at most once per session when required; do not repeat repository work per package.
-- [ ] Model Snap/Flatpak manager or remote prerequisites as typed dependencies rather than arbitrary shell setup.
-- [ ] Preserve canonical-plan regeneration, catalog digest binding, redacted events, atomic snapshots, resume identity, and fail-closed recovery on Linux.
-- [ ] Define configuration, restart/session-refresh, failure-summary, and cleanup behavior for Linux.
+- [x] Extend diagnostics to identify the distribution, architecture, available managers, Flatpak/Flathub state, and missing prerequisites.
+- [x] Add controller routing for Ubuntu and Fedora while preserving the separate production Windows path.
+- [x] Execute user-scoped Flatpak/configuration work without elevation and group machine work behind one direct-argument `sudo` handoff.
+- [x] Refresh APT or DNF metadata once per canonical plan when required.
+- [x] Model native Snap/Flatpak manager installation, Snap activation, and Flatpak remote setup as typed dependencies rather than arbitrary catalog shell setup.
+- [x] Preserve canonical-plan regeneration, catalog digest binding, streaming redacted events, atomic snapshots, resume identity, and fail-closed recovery on Linux.
+- [x] Define explicit configuration skipping/manual-authentication, no implicit restart, failure summary, temporary-plan cleanup, and idempotent resume behavior.
 
-### Phase 5: Public COWebs CLI product surface
+### Phase 5: Public COWebs CLI product surface — source implementation complete
 
-- [ ] Make `cowebs install dev-setup` the stable interactive installation entry point.
-- [ ] Define the public command family: `cowebs plan dev-setup`, `cowebs install dev-setup`, `cowebs status dev-setup`, `cowebs resume dev-setup`, `cowebs doctor dev-setup`, and `cowebs update`.
-- [ ] Treat `dev-setup` as a stable product identifier so the umbrella CLI can add future COWebs products without changing the setup engine's domain model.
-- [ ] Preserve current profile, repeatable pack, essentials-only, dry-run, non-interactive, configuration, restart, and JSON capabilities through the public command grammar.
-- [ ] Reuse the existing `cowebs-setup` planner, broker, journal, resume, status, and doctor implementation behind the public CLI until an internal rename or package move passes compatibility tests.
-- [ ] Extract a shared Go application/service layer so the terminal CLI and future native GUI call the same typed orchestration API; the GUI must not scrape CLI output or duplicate planning logic.
-- [ ] Define stable help text, exit codes, human and JSON output contracts, shell completions, version reporting, and unknown-product/command diagnostics.
-- [ ] Preserve compatibility for the released Windows BAT and document any temporary `cowebs-setup` alias before removing or renaming an entry point.
-- [ ] Make self-update consume only a verified immutable release manifest; never download or execute mutable default-branch code.
-- [ ] Add parser, dispatch, compatibility, completion, update-integrity, and CLI-to-controller end-to-end tests.
+- [x] Make `cowebs install dev-setup` the interactive/non-interactive source-preview installation entry point.
+- [x] Define the plan, install, status, resume, doctor, and update command family.
+- [x] Treat `dev-setup` as a stable product identifier.
+- [x] Preserve profile, repeatable pack, essentials-only, dry-run, non-interactive, configuration, restart, and JSON grammar.
+- [x] Reuse the planner, broker, journal, resume, status, and doctor packages behind the public CLI.
+- [x] Extract a shared Go application/service layer for terminal and future GUI frontends.
+- [x] Define help, exit codes, human/JSON output, completions, version, and unknown-product diagnostics.
+- [x] Preserve the released Windows BAT and retain `cowebs-setup` as the development compatibility entry point.
+- [x] Make update checks/downloads consume only strict immutable HTTPS release manifests and verified artifacts.
+- [x] Add parser, dispatch, compatibility, completion, update-integrity, and CLI planning tests.
 
 ### Phase 6: Native packaging, bootstrap, and immutable distribution
 
 - [ ] Publish the `cowebs` executable through Winget/MSI or MSIX on Windows, signed `.deb`/APT packages on Ubuntu, signed `.rpm`/DNF packages on Fedora, and Homebrew after macOS support exists.
-- [ ] Add a thin Unix bootstrap that downloads only a pinned `cowebs` release artifact and verifies its declared SHA-256 before execution.
-- [ ] Publish versioned `cowebs` binaries for supported platforms and architectures from one version source.
-- [ ] Generate a release manifest that records platform, architecture, artifact name, size, digest, and minimum supported environment.
-- [ ] Keep the bootstrap free of mutable default-branch execution, repository cloning, credentials, and embedded arbitrary install commands.
-- [ ] Add checksums and an SBOM; evaluate signing before declaring the Linux path stable.
-- [ ] Preserve `master-setup.bat` as the Windows single-file experience throughout Linux delivery.
+- [x] Add a thin generated Unix bootstrap that downloads only a versioned `cowebs` artifact and verifies its exact SHA-256.
+- [x] Build versioned Windows x64 and Linux x64/arm64 `cowebs` binaries from one version source; publication remains gated.
+- [x] Generate a release manifest recording platform, architecture, artifact name, size, digest, and minimum environment.
+- [x] Keep the bootstrap free of mutable default-branch execution, repository cloning, credentials, and arbitrary install commands.
+- [x] Generate checksums and an SPDX SBOM; signing remains required before stable publication.
+- [x] Preserve `master-setup.bat` as the released Windows single-file experience.
 - [ ] Make the optional native installer a graphical frontend over the same shared controller used by `cowebs install dev-setup`, with identical plans, consent, progress, journal, resume, and failure semantics.
 
 ### Phase 7: Disposable-environment validation and Linux release gate
 
-- [ ] Run non-installing compiler, planner, adapter, and bootstrap tests in CI for Ubuntu and Fedora.
+- [x] Configure non-installing compiler, planner, adapter, public-CLI, bootstrap, and disposable dry-run CI coverage for Ubuntu and Fedora.
+- [x] Build, install, and package-manager-verify the unsigned DEB on Ubuntu 24.04 and RPM on Fedora 44; verify root ownership and installed modes.
+- [x] Prove Fedora DNF installation, native snapd provisioning/activation, user-owned journals, persisted failure state, and resume retry inside a disposable systemd container; do not count the host-kernel SquashFS LZO limitation as full Snap evidence.
 - [ ] Run real installations only in disposable Ubuntu and Fedora VMs or equivalent isolated environments.
 - [ ] Test fresh installation, partially provisioned hosts, already-installed packages, skipped packages, network/source failure, interrupted execution, resume, and a second idempotency run.
 - [ ] Verify user-versus-machine ownership, PATH/session behavior, logs, cleanup, and absence of credential or raw installer-output persistence.
@@ -119,8 +121,8 @@
 - [ ] Complete per-platform mappings with explicit unsupported-package reporting.
 - [ ] Implement shared configuration intents through platform-specific handlers.
 - [x] Add resumable setup state for interrupted installations.
-- [ ] Maintain a clean VM/sandbox validation matrix.
-- [ ] Add release signing, published checksums, release-manifest verification, and SBOM generation.
+- [x] Add guarded Ubuntu and Fedora disposable validation workflows with native-package installation, canonical-plan parity, resume, ownership, and idempotency gates; remote recorded runs remain pending.
+- [ ] Add release signing and publish verified checksums; release-manifest verification and SBOM generation are implemented.
 - [ ] Begin the macOS Homebrew adapter and catalog only after the Linux provider/compiler pattern is proven reusable.
 
 ## Definition of done
@@ -142,4 +144,4 @@
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The immediate implementation sequence is to map supported shared configuration intents to Linux-specific implementations while keeping authentication, license activation, account setup, and unsupported configuration explicit. Real repository writes and APT refresh stay blocked until Phase 4 supplies atomic mutation and one elevated controller handoff. Fedora should reuse the proven compiler, diagnostic, and full-core plan path before Linux privilege orchestration begins. The public `cowebs install dev-setup` contract is implemented over the proven shared controller before native packaging, bootstrap, or GUI distribution.
+The remaining critical path is full-environment evidence and publication rather than core source implementation: run the guarded Ubuntu and Fedora workflows, complete fresh/partial/skipped/network-failure/interruption/resume/idempotency coverage on kernels that support every selected package, verify PATH/session behavior and cleanup, select and execute a signing design, and only then publish and re-download assets. Fedora primary-source validation and local DEB/RPM build/install verification are complete. The optional native GUI, public package-repository submissions, macOS support, and Windows Go runtime cutover remain separate future work.

@@ -16,7 +16,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "platform", "architecture", "url", "sha256", "sizeBytes"],
+        "required": ["name", "platform", "architecture", "url", "sha256", "sizeBytes", "minimumEnvironment"],
         "properties": {
           "name": { "type": "string", "minLength": 1 },
           "platform": { "enum": ["windows", "macos", "linux", "portable"] },
@@ -24,6 +24,7 @@
           "url": { "type": "string", "format": "uri", "pattern": "^https://" },
           "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
           "sizeBytes": { "type": "integer", "minimum": 1 },
+          "minimumEnvironment": { "type": "string", "minLength": 1 },
           "signature": { "type": "string", "minLength": 1 },
           "certificateIdentity": { "type": "string", "minLength": 1 }
         }

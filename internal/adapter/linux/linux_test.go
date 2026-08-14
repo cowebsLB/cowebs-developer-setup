@@ -1,7 +1,11 @@
 package linux
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -10,6 +14,15 @@ import (
 	"github.com/cowebsLB/cowebs-developer-setup/internal/planner"
 )
 
+type fixedDownloader struct {
+	data []byte
+	err  error
+}
+
+func (d fixedDownloader) Download(_ string, _ int64) ([]byte, error) {
+	return append([]byte{}, d.data...), d.err
+}
+
 type mockRunner struct {
 	lastCommand string
 	lastArgs    []string
@@ -17,6 +30,29 @@ type mockRunner struct {
 	returnOut   string
 	returnErr   error
 	calls       int
+}
+
+type scriptedResult struct {
+	code   int
+	output string
+	err    error
+}
+
+type scriptedRunner struct {
+	results  []scriptedResult
+	commands []string
+	args     [][]string
+}
+
+func (r *scriptedRunner) Run(name string, args ...string) (int, string, error) {
+	r.commands = append(r.commands, name)
+	r.args = append(r.args, append([]string{}, args...))
+	if len(r.results) == 0 {
+		return 0, "", nil
+	}
+	result := r.results[0]
+	r.results = r.results[1:]
+	return result.code, result.output, result.err
 }
 
 func (m *mockRunner) Run(name string, args ...string) (int, string, error) {
@@ -157,8 +193,11 @@ func TestUbuntuBoundedPlanRoutesThroughDetectionAndDryRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := len(plan.Operations); got != 4 {
-		t.Fatalf("operation count = %d, want 4", got)
+	if got := len(plan.Operations); got != 5 {
+		t.Fatalf("operation count = %d, want 5", got)
+	}
+	if plan.Operations[0].Kind != "ensure-manager" || plan.Operations[0].Manager != "snap" {
+		t.Fatalf("Snap prerequisite was not planned first: %#v", plan.Operations[0])
 	}
 
 	adapter, _ := NewAdapter(PlatformUbuntu)
@@ -210,8 +249,24 @@ func TestTypedAPTPrerequisiteDryRun(t *testing.T) {
 			t.Fatalf("operation %d: code=%d output=%q calls=%d err=%v", index, code, output, runner.calls, err)
 		}
 	}
-	if _, _, err := adapter.ExecutePrerequisite(operations[0], false); err == nil || !strings.Contains(err.Error(), "not implemented") {
-		t.Fatalf("real prerequisite execution error = %v", err)
+	keyData := []byte("verified repository key")
+	digest := sha256.Sum256(keyData)
+	operations[0].SHA256 = hex.EncodeToString(digest[:])
+	adapter.Downloader = fixedDownloader{data: keyData}
+	adapter.FilesystemRoot = t.TempDir()
+	if _, _, err := adapter.ExecutePrerequisite(operations[0], false); err != nil {
+		t.Fatalf("real key prerequisite failed: %v", err)
+	}
+	writtenKey := filepath.Join(adapter.FilesystemRoot, "etc", "apt", "keyrings", "githubcli-archive-keyring.gpg")
+	if data, err := os.ReadFile(writtenKey); err != nil || string(data) != string(keyData) {
+		t.Fatalf("verified key was not written atomically: data=%q err=%v", data, err)
+	}
+	if _, _, err := adapter.ExecutePrerequisite(operations[1], false); err != nil {
+		t.Fatalf("real repository prerequisite failed: %v", err)
+	}
+	writtenSource := filepath.Join(adapter.FilesystemRoot, "etc", "apt", "sources.list.d", "github-cli.list")
+	if data, err := os.ReadFile(writtenSource); err != nil || !strings.Contains(string(data), "signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg") {
+		t.Fatalf("repository source was not written atomically: data=%q err=%v", data, err)
 	}
 }
 
@@ -234,6 +289,67 @@ func TestTypedAPTPrerequisiteRejectsUnsafeData(t *testing.T) {
 				t.Fatal("expected prerequisite rejection")
 			}
 		})
+	}
+}
+
+func TestManagerAndFlatpakRemotePrerequisites(t *testing.T) {
+	adapter, _ := NewAdapter(PlatformFedora)
+	runner := &mockRunner{returnCode: 0}
+	adapter.Runner = runner
+	manager := planner.Operation{ID: "prerequisite:manager:flatpak", Kind: "ensure-manager", LogicalPackageID: "bruno", Manager: "flatpak", Privilege: "elevated", Scope: "machine", DependsOn: []string{}}
+	if _, output, err := adapter.ExecutePrerequisite(manager, true); err != nil || !strings.Contains(output, "ensure flatpak") {
+		t.Fatalf("manager dry run failed: %q %v", output, err)
+	}
+	remote := planner.Operation{ID: "prerequisite:flatpak:remote:flathub:user", Kind: "ensure-flatpak-remote", LogicalPackageID: "bruno", Manager: "flatpak", Source: "flathub", URL: "https://flathub.org/repo/flathub.flatpakrepo", Privilege: "user", Scope: "user", DependsOn: []string{manager.ID}}
+	if _, _, err := adapter.ExecutePrerequisite(remote, false); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"--user", "remote-add", "--if-not-exists", "flathub", "https://flathub.org/repo/flathub.flatpakrepo"}
+	if runner.lastCommand != "flatpak" || !reflect.DeepEqual(runner.lastArgs, want) {
+		t.Fatalf("unexpected Flatpak remote command: %s %v", runner.lastCommand, runner.lastArgs)
+	}
+	remote.URL = "https://user:secret@example.com/remote"
+	if _, _, err := adapter.ExecutePrerequisite(remote, true); err == nil {
+		t.Fatal("expected unsafe Flatpak remote URL rejection")
+	}
+}
+
+func TestEnsureManagerInstallsMissingNativePackage(t *testing.T) {
+	adapter, _ := NewAdapter(PlatformUbuntu)
+	runner := &scriptedRunner{results: []scriptedResult{{code: -1, err: errors.New("not found")}, {code: 0}}}
+	adapter.Runner = runner
+	manager := planner.Operation{ID: "prerequisite:manager:flatpak", Kind: "ensure-manager", LogicalPackageID: "bruno", Manager: "flatpak", Privilege: "elevated", Scope: "machine"}
+	if code, _, err := adapter.ExecutePrerequisite(manager, false); err != nil || code != 0 {
+		t.Fatalf("ensure Flatpak manager failed: code=%d err=%v", code, err)
+	}
+	wantCommands := []string{"flatpak", "apt-get"}
+	if !reflect.DeepEqual(runner.commands, wantCommands) {
+		t.Fatalf("manager commands = %v, want %v", runner.commands, wantCommands)
+	}
+	wantInstall := []string{"install", "--yes", "--no-install-recommends", "flatpak"}
+	if !reflect.DeepEqual(runner.args[1], wantInstall) {
+		t.Fatalf("Flatpak installation args = %v, want %v", runner.args[1], wantInstall)
+	}
+}
+
+func TestEnsureFedoraSnapManagerActivatesSocketAndMount(t *testing.T) {
+	adapter, _ := NewAdapter(PlatformFedora)
+	adapter.FilesystemRoot = t.TempDir()
+	runner := &scriptedRunner{results: []scriptedResult{{code: -1, err: errors.New("not found")}, {code: 0}, {code: 0}, {code: 0}}}
+	adapter.Runner = runner
+	manager := planner.Operation{ID: "prerequisite:manager:snap", Kind: "ensure-manager", LogicalPackageID: "vscode", Manager: "snap", Privilege: "elevated", Scope: "machine"}
+	if code, _, err := adapter.ExecutePrerequisite(manager, false); err != nil || code != 0 {
+		t.Fatalf("ensure Fedora Snap manager failed: code=%d err=%v", code, err)
+	}
+	wantCommands := []string{"snap", "dnf", "systemctl", "snap"}
+	if !reflect.DeepEqual(runner.commands, wantCommands) {
+		t.Fatalf("manager commands = %v, want %v", runner.commands, wantCommands)
+	}
+	if !reflect.DeepEqual(runner.args[1], []string{"-y", "install", "snapd"}) {
+		t.Fatalf("Snap installation args = %v", runner.args[1])
+	}
+	if target, err := os.Readlink(filepath.Join(adapter.FilesystemRoot, "snap")); err != nil || target != filepath.Join(adapter.FilesystemRoot, "var", "lib", "snapd", "snap") {
+		t.Fatalf("Fedora snap mount link target = %q err=%v", target, err)
 	}
 }
 

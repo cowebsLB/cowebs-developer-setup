@@ -10,7 +10,9 @@ master-setup.bat
         -> config/packages.json
         -> config/profiles.json
         -> src/windows/setup.ps1
-        -> future macOS/Linux adapters
+        -> released Windows adapter
+        -> source-preview Linux controller and adapters
+        -> future macOS adapter
 ```
 
 ## Bootstrap layer
@@ -19,19 +21,19 @@ master-setup.bat
 
 ## Shared manifest layer
 
-`packages.json` assigns stable logical keys such as `git`, `node`, and `docker`. Schema v2 also records tier, categories, license family, install strategy, dependencies, conflicts, conditions, and platform compatibility mappings. Windows uses `platforms.windows.wingetId`. Reviewed Ubuntu entries use `support` classification plus typed manager, package ID, privilege, scope, architectures, prerequisite references, installer-option array, and estimate fields. `ubuntuPrerequisites` defines reusable signed APT repositories as typed HTTPS URLs, a pinned keyring digest and constrained target, repository suite/components, architectures, and a constrained sources-list target; it contains no command or shell field.
+`packages.json` assigns stable logical keys such as `git`, `node`, and `docker`. Schema v2 also records tier, categories, license family, install strategy, dependencies, conflicts, conditions, and Windows/Ubuntu compatibility mappings. `config/fedora-packages.json` adds one reviewed classification for every existing logical key without duplicating profiles. Supported Linux entries use a typed manager, package ID, privilege, scope, architectures, installer options, and conservative estimate policy. `ubuntuPrerequisites` defines reusable signed APT repositories as typed HTTPS URLs, a pinned keyring digest and constrained target, repository suite/components, architectures, and a constrained sources-list target; no catalog accepts command or shell fields.
 
 `profiles.json` defines shared core packages, reusable use-case packs, role essentials, recommended packs, optional packs, and composite inheritance. The adapter resolves profile inheritance and package dependencies recursively, de-duplicates keys while preserving first-seen order, and rejects conflicts before installation.
 
 ## Platform adapter layer
 
-The Windows PowerShell adapter owns Winget behavior, pack selection, plan validation, an elevated-real-install guard, privilege reporting, preflight estimates, colored status rendering, PATH refresh, Windows-specific configuration tracking, folders, restart handling, authorized-lab confirmation, persistent logs, and the final execution summary. The source-only Go Linux adapter owns typed Ubuntu/Fedora provider detection and direct APT, DNF, Snap, and Flatpak argument construction. It validates distribution compatibility, privilege, scope, source, and positional tokens before invoking a process and never constructs a shell command. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
+The Windows PowerShell adapter owns the released Winget runtime. The source-preview Go Linux adapter owns Ubuntu/Fedora detection and direct APT, DNF, Snap, and Flatpak execution. It also performs bounded HTTPS key retrieval, digest verification, constrained atomic repository writes, one metadata refresh, typed native manager installation/activation, scoped remote setup, and Linux configuration handlers. `internal/application` is the shared frontend boundary. It partitions the canonical plan so machine operations cross one explicit `sudo` handoff while user Flatpak and configuration operations remain in the initiating user's process. The parent validates and persists elevated events as a stream, so completed work remains resumable even when a later operation fails. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
 
 Windows estimates are catalog-driven. The manifest supplies conservative fallback and disk-heavy ranges plus overrides for unusually large packages. The adapter sums the resolved dependency-free plan before Winget runs; estimates describe a fresh setup and are not a promise of exact transfer size or duration.
 
 ## Release layer
 
-`scripts/build-release.ps1` produces the minimal runtime ZIP. Tests validate manifests and every profile directly, then simulate the complete BAT-to-ZIP-to-engine-to-cleanup flow without installing software.
+`scripts/build-release.ps1` continues to produce the released Windows v6.2 runtime ZIP. `scripts/build-cross-platform.ps1` separately builds the source-preview `cowebs` binaries, deterministic catalogs, checksum-pinned Unix bootstrap, release manifest, SHA-256 list, SPDX SBOM, and Winget metadata. Debian and RPM definitions are built independently on Linux by `scripts/build-linux-packages.sh`; disposable Ubuntu 24.04 and Fedora 44 package-manager verification has passed for the unsigned preview formats. Preview packaging does not change the production BAT payload.
 
 ## Architecture modernization implementation
 
@@ -42,17 +44,19 @@ The v6.2 source tree includes a development redesign foundation with versioned c
 - `schema/execution-plan-v1.schema.json` defines a typed plan that cannot carry arbitrary command or shell fields.
 - `schema/execution-event-v1.schema.json` defines the future console, journal, broker, and JSON-output event vocabulary.
 - `schema/release-manifest-v1.schema.json` defines immutable multi-platform artifact metadata and hashes.
-- `scripts/convert-catalog-v2-to-v3.ps1` compiles the production v2 manifests into deterministic shadow-planner inputs, including validated Ubuntu providers without creating a second hand-maintained catalog.
+- `scripts/convert-catalog-v2-to-v3.ps1` compiles the production v2 manifests and reviewed Fedora compatibility input into deterministic planner catalogs without hand-maintaining schema-v3 output.
 - `internal/catalog` strictly loads and cross-validates the generated catalogs.
 - `internal/planner` resolves profile inheritance, packs, dependency order, conflicts, providers, prerequisites, estimates, and typed operations without invoking a package manager; missing target providers are returned together in deterministic logical-package order. Shared APT repository setup is emitted once, followed by one package-index refresh on which dependent installs wait.
 - `internal/adapter/windows` implements native Winget detection, argument construction, and execution without invoking command shells.
-- `internal/adapter/linux` implements Ubuntu/Fedora validation, native dpkg/DNF/Snap/Flatpak detection, exact installed-state handling, direct typed installation commands, and non-mutating rendering of validated Ubuntu repository prerequisites without invoking command shells.
-- `internal/broker` regenerates the canonical plan from verified catalogs, requires elevation for real execution, directly invokes the allowlisted Windows provider, skips installs already satisfied by detection, and emits redacted `execution-event-v1` events.
+- `internal/adapter/linux` implements Ubuntu/Fedora validation, dpkg/DNF/Snap/Flatpak detection, direct typed installation, verified atomic APT prerequisites, and typed Flatpak remote setup without command shells.
+- `internal/configuration` maps supported Linux configuration intents to allowlisted argument arrays and reports authentication/account intents as manual without persisting credentials.
+- `internal/application` exposes shared catalog, planning, partitioned execution, and state services to the CLI and future GUI.
+- `internal/broker` regenerates canonical plans, enforces platform and privilege partitions, skips satisfied operations, and emits redacted `execution-event-v1` events.
 - `internal/journal` handles strict schema-v1 JSONL event persistence, monotonic sequences, flushed atomic state snapshots, plan-bound recovery, and fail-closed resume validation.
 - `internal/doctor` executes diagnostic checks across OS compatibility, package manager availability, workspace directories, and catalog integrity.
-- `cmd/cowebs-setup` exposes the core via deterministic development CLI subcommands: `plan`, `broker`, `status`, `resume`, and `doctor` (with `--json` support).
+- `cmd/cowebs` exposes the public preview command family under the stable `dev-setup` product identifier; `cmd/cowebs-setup` remains the development compatibility entry point.
 
-The shadow planner has exact black-box parity with the production PowerShell planner. The Windows and Linux provider adapters, Windows privileged broker, journal, resume/status flow, and diagnostic CLI have unit and CLI integration coverage, including the principal tamper and recovery boundaries; this is not a claim of exhaustive security proof or real-install validation. Ubuntu tests compile all 86 reviewed classifications, prove the complete 11-package x64 core plus bounded runtime, productivity/tooling, infrastructure, cloud/data/security/game plans, verify deterministic JSON and ten typed repository prerequisites with one shared APT refresh, assert complete dependency-aware unsupported diagnostics, and route representative plan operations through injected detection and dry-run execution. Real prerequisite execution deliberately returns an error. Schema v2 remains authoritative for `src/windows/setup.ps1` and the public release; neither the Go binary nor schema-v3 catalogs are included in that runtime ZIP.
+The planner retains exact black-box parity with the production PowerShell planner. Tests compile all 86 Ubuntu and Fedora classifications, prove deterministic core and bounded plans, validate typed APT/DNF/Snap/Flatpak prerequisites, exercise verified atomic repository writes with injected downloads, test privilege partitioning and configuration handling, and verify the public CLI and cross-platform release outputs. Real installation evidence is still pending in disposable Ubuntu and Fedora environments, so schema v2 remains authoritative for the public Windows v6.2 runtime.
 
 ## Target architecture
 

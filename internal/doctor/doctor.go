@@ -31,52 +31,53 @@ type DiagnosticsOptions struct {
 }
 
 func RunDiagnostics(opts DiagnosticsOptions) *DoctorReport {
+	platform := runtime.GOOS
+	if runtime.GOOS == "linux" {
+		if detected, err := detectLinuxDistribution(); err == nil {
+			platform = detected
+		}
+	}
 	report := &DoctorReport{
-		Platform:     runtime.GOOS,
+		Platform:     platform,
 		Architecture: runtime.GOARCH,
 		Healthy:      true,
 		Checks:       []CheckResult{},
 	}
 
 	// Check 1: Platform Compatibility
-	if runtime.GOOS == "windows" {
+	if platform == "windows" {
 		report.Checks = append(report.Checks, CheckResult{
 			Name:    "Platform OS",
 			Passed:  true,
 			Status:  "OK",
 			Message: "Windows platform detected",
 		})
-	} else {
+	} else if platform == "ubuntu" || platform == "fedora" {
 		report.Checks = append(report.Checks, CheckResult{
 			Name:    "Platform OS",
 			Passed:  true,
-			Status:  "WARNING",
-			Message: fmt.Sprintf("Platform %s detected (Windows target)", runtime.GOOS),
-		})
-	}
-
-	// Check 2: Winget Package Manager
-	wingetPath, err := exec.LookPath("winget")
-	if err == nil {
-		out, errCmd := exec.Command(wingetPath, "--version").Output()
-		ver := "available"
-		if errCmd == nil && len(out) > 0 {
-			ver = strings.TrimSpace(string(out))
-		}
-		report.Checks = append(report.Checks, CheckResult{
-			Name:    "Winget Manager",
-			Passed:  true,
 			Status:  "OK",
-			Message: fmt.Sprintf("Winget found: %s (%s)", wingetPath, ver),
+			Message: fmt.Sprintf("Supported %s Linux distribution detected", platform),
 		})
 	} else {
 		report.Healthy = false
-		report.Checks = append(report.Checks, CheckResult{
-			Name:    "Winget Manager",
-			Passed:  false,
-			Status:  "FAIL",
-			Message: "Winget executable not found on PATH. Install Microsoft App Installer.",
-		})
+		report.Checks = append(report.Checks, CheckResult{Name: "Platform OS", Passed: false, Status: "FAIL", Message: fmt.Sprintf("Unsupported platform %s", platform)})
+	}
+
+	// Check 2: platform package managers
+	if platform == "windows" {
+		checkManager(report, "Winget Manager", "winget", true)
+	} else if platform == "ubuntu" {
+		checkManager(report, "APT Manager", "apt-get", true)
+		checkManager(report, "dpkg Inventory", "dpkg-query", true)
+		checkManager(report, "Snap Manager", "snap", false)
+		checkManager(report, "Flatpak Manager", "flatpak", false)
+		checkFlatpakRemote(report)
+	} else if platform == "fedora" {
+		checkManager(report, "DNF Manager", "dnf", true)
+		checkManager(report, "Snap Manager", "snap", false)
+		checkManager(report, "Flatpak Manager", "flatpak", false)
+		checkFlatpakRemote(report)
 	}
 
 	// Check 3: Workspace Directories
@@ -133,4 +134,57 @@ func RunDiagnostics(opts DiagnosticsOptions) *DoctorReport {
 	}
 
 	return report
+}
+
+func checkFlatpakRemote(report *DoctorReport) {
+	path, err := exec.LookPath("flatpak")
+	if err != nil {
+		return
+	}
+	found := false
+	for _, scope := range []string{"--user", "--system"} {
+		output, commandErr := exec.Command(path, scope, "remotes", "--columns=name").Output()
+		if commandErr == nil {
+			for _, remote := range strings.Fields(string(output)) {
+				if remote == "flathub" {
+					found = true
+				}
+			}
+		}
+	}
+	if found {
+		report.Checks = append(report.Checks, CheckResult{Name: "Flathub Remote", Passed: true, Status: "OK", Message: "Flathub remote is available"})
+	} else {
+		report.Checks = append(report.Checks, CheckResult{Name: "Flathub Remote", Passed: true, Status: "WARNING", Message: "Flathub is missing; selected plans add it through a typed scoped prerequisite"})
+	}
+}
+
+func checkManager(report *DoctorReport, name, executable string, required bool) {
+	path, err := exec.LookPath(executable)
+	if err == nil {
+		report.Checks = append(report.Checks, CheckResult{Name: name, Passed: true, Status: "OK", Message: fmt.Sprintf("%s found: %s", executable, path)})
+		return
+	}
+	status := "WARNING"
+	message := fmt.Sprintf("Optional manager %s was not found; plans selecting it will install the reviewed native manager package", executable)
+	passed := true
+	if required {
+		status, passed = "FAIL", false
+		message = fmt.Sprintf("Required manager %s was not found on PATH", executable)
+		report.Healthy = false
+	}
+	report.Checks = append(report.Checks, CheckResult{Name: name, Passed: passed, Status: status, Message: message})
+}
+
+func detectLinuxDistribution() (string, error) {
+	data, err := os.ReadFile("/etc/os-release")
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "ID=") {
+			return strings.Trim(strings.TrimPrefix(line, "ID="), "\"'"), nil
+		}
+	}
+	return "", fmt.Errorf("missing distribution ID")
 }

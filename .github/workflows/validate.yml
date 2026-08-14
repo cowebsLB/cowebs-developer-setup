@@ -21,3 +21,43 @@ jobs:
       - name: Run safe setup tests
         shell: pwsh
         run: ./tests/run-tests.ps1
+
+  ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run Go tests and static analysis
+        run: |
+          go test -count=1 -cover ./...
+          go vet ./...
+      - name: Compile catalogs and run Linux planning contracts
+        shell: pwsh
+        run: |
+          ./tests/test-architecture-foundation.ps1
+          ./tests/test-ubuntu-planning.ps1
+          ./tests/test-fedora-planning.ps1
+      - name: Run disposable Ubuntu dry-run story
+        env:
+          COWEBS_DISPOSABLE: '1'
+        run: |
+          pwsh ./scripts/convert-catalog-v2-to-v3.ps1 -OutputDirectory ./build/catalog
+          go build -trimpath -o ./build/cowebs ./cmd/cowebs
+          bash ./scripts/validate-linux-disposable.sh ubuntu dry-run ./build/cowebs ./build/catalog/package-catalog.v3.json ./build/catalog/profile-catalog.v3.json
+
+  fedora:
+    runs-on: ubuntu-24.04
+    container: fedora:43
+    steps:
+      - name: Install action prerequisites
+        run: dnf install -y git tar gzip findutils
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run Fedora adapter, controller, and CLI tests
+        run: go test -count=1 ./internal/adapter/linux ./internal/application ./internal/broker ./internal/configuration ./cmd/cowebs

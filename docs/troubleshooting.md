@@ -68,3 +68,27 @@ Use Windows Terminal or another console with Unicode and box-drawing glyph suppo
 ## Temporary payload debugging
 
 Use `--keep-temp` to retain the exact extracted session directory. Remove that printed directory manually after diagnosis; do not recursively delete the broader `%TEMP%\COWebs.lb` root.
+
+## Linux preview reports unsupported packages
+
+This is fail-closed behavior, not silent omission. The diagnostic lists every selected logical key without a reviewed provider for the target distribution and architecture. Choose a supported profile/pack combination or wait for a reviewed provider; do not replace the catalog entry with a shell command or unverified installer.
+
+## Linux preview reports that Snap, Flatpak, or Flathub is missing
+
+Run `cowebs doctor dev-setup --json`. A selected Snap or Flatpak provider adds a typed elevated prerequisite that installs the reviewed native manager package when missing; Snap activation is handled before package installation, and a selected Flathub package adds the official HTTPS remote through a typed user or machine operation. A failure after that point should be resumed with the saved plan, journal, and state rather than editing the canonical plan.
+
+## Fedora Snap fails inside a container
+
+If the journal reports a Snap mount failure and `journalctl` says the SquashFS image uses unsupported LZO compression, the container is using a host kernel without the required SquashFS codec. This is an environment limitation, not a package retry condition. Move the validation to the guarded Fedora LXD workflow or a disposable Fedora VM with the required kernel support; do not claim container-only results as full Fedora installation evidence.
+
+## Linux plan does not match the current host
+
+Real execution requires the plan's Ubuntu/Fedora target to match `/etc/os-release`. Rebuild the canonical plan for the current distribution. Do not edit the plan JSON: catalog digest and canonical-plan regeneration intentionally reject changes.
+
+## Disposable validation refuses to run
+
+`scripts/validate-linux-disposable.sh` requires `COWEBS_DISPOSABLE=1` and either an ephemeral CI environment or a detected virtualization boundary. Move the test into a disposable VM/sandbox. Do not set the override on an active workstation merely to bypass the guard.
+
+## Update or bootstrap integrity validation fails
+
+Do not bypass URL, size, or SHA-256 validation. The manifest and artifact URLs must use immutable HTTPS release paths, and downloaded bytes must exactly match the declared size and digest. Default-branch URLs are deliberately rejected.

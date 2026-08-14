@@ -45,4 +45,14 @@ The temporary payload is removed after success or failure unless `--keep-temp` i
 
 ## Other operating systems
 
-macOS remains an architectural placeholder. Ubuntu and Fedora have a source-only typed Go adapter foundation for APT, DNF, Snap, and Flatpak. All 86 logical packages now have reviewed Ubuntu classifications: 54 executable providers and 32 explicit unsupported results. Ten official APT repositories use typed, digest-pinned prerequisites; Terraform, Vault, and Packer share one HashiCorp prerequisite. Bruno, Godot, OBS Studio, GIMP 3, and Blockbench are explicitly user-scoped to Flathub, while Snap-based providers remain conditional on snapd, store availability, and reviewed confinement. Google Cloud CLI, Unity Hub, Tiled, and Blockbench remain x64-only in the reviewed catalog. Real repository mutation, downloaded-artifact execution, user-scoped package-manager configuration, Linux orchestration, native packaging, and the Unix bootstrap are not complete, so there is no supported Linux installation command yet. The released and tested public execution path remains Windows-only.
+macOS remains an architectural placeholder. Ubuntu and Fedora now have source-preview planning and execution through APT, DNF, Snap, and Flatpak. Ubuntu has 54 executable providers and 32 explicit unsupported results; Fedora has 42 executable providers and 44 explicit unsupported results over the same 86 logical keys. Linux plans include typed native manager installation and activation, scoped Flathub setup, verified and atomic Ubuntu repositories, one metadata refresh, user/elevated partitioning, and explicit manual authentication intent.
+
+Build and inspect the preview locally:
+
+```powershell
+./scripts/convert-catalog-v2-to-v3.ps1 -OutputDirectory ./build/catalog
+go build -o ./build/cowebs ./cmd/cowebs
+./build/cowebs plan dev-setup --packages ./build/catalog/package-catalog.v3.json --profiles ./build/catalog/profile-catalog.v3.json --profile game --essentials-only --platform ubuntu --json
+```
+
+Real Linux installation is not supported on an active workstation. It must run through `scripts/validate-linux-disposable.sh` with `COWEBS_DISPOSABLE=1` inside a disposable Ubuntu/Fedora VM or explicitly authorized ephemeral CI runner. The generated Unix bootstrap and native package definitions are release candidates only; no Linux artifacts are published or signed. The released public execution path remains Windows v6.2 through `master-setup.bat`.

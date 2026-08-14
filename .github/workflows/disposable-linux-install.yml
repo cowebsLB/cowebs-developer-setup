@@ -1,0 +1,95 @@
+name: Disposable Linux installation
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Disposable runner target
+        required: true
+        type: choice
+        options: [ubuntu, fedora]
+      confirm_real_install:
+        description: Type RUN-IN-DISPOSABLE-RUNNER
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu-real-install:
+    if: inputs.confirm_real_install == 'RUN-IN-DISPOSABLE-RUNNER' && inputs.platform == 'ubuntu'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Compile deterministic catalogs
+        shell: pwsh
+        run: ./scripts/convert-catalog-v2-to-v3.ps1 -OutputDirectory ./build/catalog
+      - name: Build and install Debian package
+        run: |
+          mkdir -p ./build/bundle/catalog
+          cp ./build/catalog/*.json ./build/bundle/catalog/
+          go build -trimpath -o ./build/bundle/cowebs ./cmd/cowebs
+          bash ./scripts/build-linux-packages.sh 6.3.0-dev x64 ./build/bundle deb
+          sudo dpkg -i ./dist/linux-packages/cowebs_6.3.0-dev_amd64.deb
+          dpkg-query -W -f='${Status}\n' cowebs
+          test "$(stat -c '%U:%G' /usr/bin/cowebs)" = 'root:root'
+      - name: Execute Ubuntu real-install, resume, parity, and idempotency gates
+        env:
+          COWEBS_DISPOSABLE: '1'
+        run: bash ./scripts/validate-linux-disposable.sh ubuntu real /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json
+
+  fedora-real-install:
+    if: inputs.confirm_real_install == 'RUN-IN-DISPOSABLE-RUNNER' && inputs.platform == 'fedora'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Compile catalogs and Linux binary
+        shell: pwsh
+        run: |
+          ./scripts/convert-catalog-v2-to-v3.ps1 -OutputDirectory ./build/catalog
+          New-Item -ItemType Directory -Force -Path ./build/bundle/catalog | Out-Null
+          Copy-Item ./build/catalog/*.json ./build/bundle/catalog/
+          $env:GOOS = 'linux'
+          $env:GOARCH = 'amd64'
+          go build -trimpath -o ./build/bundle/cowebs ./cmd/cowebs
+      - name: Set up isolated LXD host
+        uses: canonical/setup-lxd@da2ac84e727dc534215fd14cd088b9209d65893b
+        with:
+          channel: 5.21/stable
+      - name: Provision Fedora 44 system container and RPM
+        run: |
+          lxc launch images:fedora/44/cloud cowebs-fedora44 -c security.nesting=true
+          lxc exec cowebs-fedora44 -- cloud-init status --wait
+          lxc exec cowebs-fedora44 -- dnf -y install rpm-build sudo
+          lxc exec cowebs-fedora44 -- mkdir -p /workspace/scripts /workspace/packaging/rpm /workspace/build/bundle/catalog /workspace/dist/linux-packages
+          lxc file push ./scripts/build-linux-packages.sh cowebs-fedora44/workspace/scripts/build-linux-packages.sh
+          lxc file push ./scripts/validate-linux-disposable.sh cowebs-fedora44/workspace/scripts/validate-linux-disposable.sh
+          lxc file push ./packaging/rpm/cowebs.spec cowebs-fedora44/workspace/packaging/rpm/cowebs.spec
+          lxc file push ./build/bundle/cowebs cowebs-fedora44/workspace/build/bundle/cowebs
+          lxc file push ./build/bundle/catalog/package-catalog.v3.json cowebs-fedora44/workspace/build/bundle/catalog/package-catalog.v3.json
+          lxc file push ./build/bundle/catalog/profile-catalog.v3.json cowebs-fedora44/workspace/build/bundle/catalog/profile-catalog.v3.json
+          lxc exec cowebs-fedora44 -- bash /workspace/scripts/build-linux-packages.sh 6.3.0-dev x64 /workspace/build/bundle rpm
+          lxc exec cowebs-fedora44 -- bash -lc 'dnf -y install /workspace/dist/linux-packages/*.rpm'
+          lxc exec cowebs-fedora44 -- rpm -q cowebs
+          lxc exec cowebs-fedora44 -- bash -lc 'test "$(stat -c "%U:%G" /usr/bin/cowebs)" = "root:root"'
+      - name: Create unprivileged validation user
+        run: |
+          lxc exec cowebs-fedora44 -- useradd --create-home --groups wheel cowebs
+          lxc exec cowebs-fedora44 -- bash -lc "printf '%s\n' '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/cowebs-wheel && chmod 0440 /etc/sudoers.d/cowebs-wheel"
+      - name: Execute Fedora real-install, resume, parity, and idempotency gates
+        run: |
+          lxc exec cowebs-fedora44 --env CI=true --env COWEBS_DISPOSABLE=1 -- sudo -u cowebs -H bash /workspace/scripts/validate-linux-disposable.sh fedora real /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json
+      - name: Remove disposable Fedora container
+        if: always()
+        run: lxc delete --force cowebs-fedora44 || true

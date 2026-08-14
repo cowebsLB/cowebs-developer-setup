@@ -6,6 +6,10 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
+- Advanced the Linux roadmap from planning-only foundations to a source-preview controller and public CLI while preserving schema v2 and `master-setup.bat` as the released Windows runtime.
+- Completed live Fedora 43/44, Snapcraft, and Flathub validation over all 86 shared logical keys: 42 executable DNF/Snap/Flatpak providers and 44 explicit unsupported results without profile forks.
+- Mapped supported Linux Git, Git LFS, VS Code, and Node configuration intents and kept GitHub, AWS, Azure, account, license, and unsupported configuration explicit and manual.
+- Extended Linux diagnostics for distribution, architecture, required/optional managers, Flathub state, workspace paths, and catalog integrity.
 - Completed Ubuntu Phase 2 package classification across all 86 logical tools: 54 reviewed executable providers and 32 explicit unsupported results.
 - Added exact Ubuntu providers for AWS CLI, Azure CLI, Google Cloud CLI, DVC, R, Nmap, Wireshark, Unity Hub, Godot, Blender, Krita, Audacity, OBS Studio, Inkscape, GIMP 3, LMMS, Tiled, and Blockbench.
 - Added digest-pinned Microsoft Azure CLI, Google Cloud CLI, and Unity Hub APT prerequisites while retaining one de-duplicated package-index refresh per plan.
@@ -18,7 +22,7 @@ All notable changes follow semantic versioning.
 - Classified the next 15 Ubuntu 24.04 language, runtime, package-manager, and container tools: five reviewed executable providers and ten explicit unsupported results that preserve version and installation-method intent.
 - Added native Ubuntu providers for Node.js, OpenJDK 21, .NET SDK 10, and Rustup plus a conditional Canonical classic Snap provider for Go on x64 and arm64.
 - Promoted GitHub CLI from explicit Ubuntu unsupported status to a conditional official APT provider backed by a typed, SHA-256-pinned signed-repository prerequisite.
-- Extended package catalog v3 and execution plan v1 with typed repository-key, APT source, and de-duplicated package-index refresh contracts while keeping real Linux prerequisite mutation disabled.
+- Extended package catalog v3 and execution plan v1 with typed repository-key, APT source, native manager installation, and de-duplicated package-index refresh contracts.
 - Extended the deterministic schema-v2 compatibility input and compiler with reviewed Ubuntu support classifications, typed APT/Snap provider mappings, architecture ranges, options, privilege/scope, and conservative estimates for the bounded core slice.
 - Changed planner failure behavior to report every selected package lacking a target provider in deterministic plan order.
 - Advanced development builds to `6.3.0-dev` and protected the published v6.2.0 identity from rebuilds on newer source.
@@ -27,6 +31,12 @@ All notable changes follow semantic versioning.
 
 ### Added
 
+- Added the shared `internal/application` service and public preview `cowebs` command family for `dev-setup`: plan, install, status, resume, doctor, update, completions, versioning, JSON output, and stable unsupported-package exit status.
+- Added one-shot Linux `sudo` partitioning, verified/atomic Ubuntu repository mutation, one APT/DNF metadata refresh, typed native Snap/Flatpak manager installation and activation, journal-bound resume, and redacted streaming execution events.
+- Added immutable release-manifest loading and bounded artifact downloads with HTTPS, size, and SHA-256 verification plus default-branch URL rejection.
+- Added cross-platform Windows/Linux binary archives, a digest-injected Unix bootstrap, SHA256SUMS, SPDX 2.3 SBOM, Winget manifests, and Debian/RPM package definitions.
+- Added Windows, Ubuntu 24.04, Fedora 43, and guarded real-install workflow coverage for native-packaged Ubuntu 24.04 and isolated Fedora 44 LXD environments.
+- Added Fedora planning, public CLI, privilege/configuration, release-integrity, packaging, shell-syntax, and artifact-runtime tests.
 - Added deterministic final-slice Ubuntu planning coverage for eighteen providers, APT/Snap/Flathub scope and architecture constraints, four shared repositories including the core prerequisite, and complete dependency-aware unsupported diagnostics.
 - Added deterministic Ubuntu Kubernetes/IaC/security planning coverage for eleven executable providers, four reviewed classic snaps, shared HashiCorp prerequisites, and complete dependency-aware unsupported diagnostics.
 - Added deterministic Ubuntu productivity/tooling-slice planning coverage for nine executable providers, five signed repositories including the core GitHub prerequisite, one shared APT refresh, Flathub user scope, and complete ordered unsupported diagnostics.
@@ -37,8 +47,25 @@ All notable changes follow semantic versioning.
 - Added a source-only typed Linux provider adapter for Ubuntu and Fedora with direct `apt-get`, `dnf`, `snap`, and `flatpak` detection and installation commands.
 - Added Linux adapter tests for manager/platform compatibility, user and machine Flatpak scopes, dry-run isolation, process-start failures, native inventory queries, and unsafe positional-token rejection.
 
+### Fixed
+
+- Corrected Fedora Node.js to the cross-release `nodejs24` package and made OpenJDK 21 and scrcpy fail closed because official Fedora 43/44 repositories do not preserve those exact providers across the supported matrix.
+- Fixed fresh Linux plans treating missing Snap and Flatpak managers as blocking checks instead of installing their reviewed native packages and activating Snap through the typed elevated partition.
+- Fixed elevated Linux events being buffered until sudo exited; validated child events now persist as they stream so completed operations survive a later package failure and can be resumed.
+- Fixed Linux diagnostics claiming a missing optional manager would block a plan after native manager provisioning was implemented.
+- Allowed Debian and RPM preview packages to be built independently so each disposable distribution validates only its native format.
+
+### Testing
+
+- Validated every executable Fedora DNF identity on Fedora 43/44 x64 and arm64 repository metadata, all Snap IDs/architectures through the official Snapcraft API, and all Flathub IDs/architectures through the official remote.
+- Built, installed, and package-manager-verified the DEB in Ubuntu 24.04 and the RPM in Fedora 44, including root ownership and installed file modes.
+- Proved Fedora native manager provisioning, snapd activation, streamed failure journaling, and resume retry in a disposable systemd container; full VS Code Snap completion remains assigned to the VM/LXD gate because Docker Desktop lacks SquashFS LZO support.
+
 ### Security
 
+- Restricted real Linux machine work to canonical operations in one elevated child; user Flatpak and configuration work never crosses that privilege boundary.
+- Bounded repository-key downloads, required exact SHA-256 matches, constrained APT targets, used flushed atomic replacement, and prohibited credential-bearing or mutable default-branch URLs.
+- Kept authentication output and credentials outside catalogs, journals, events, and configuration automation.
 - Refused downloaded JupyterLab/RStudio/Ollama/ZAP/Burp/RenderDoc installers and Windows-only Sysinternals, Kali WSL, Epic Games Launcher, and Visual Studio game workload intent until verified artifact, service, consent, or appropriate platform handlers exist.
 - Pinned current Microsoft, Google Cloud, and Unity repository-key bytes by SHA-256; preserved GIMP 3 through user-scoped Flathub instead of silently substituting Ubuntu 24.04's GIMP 2.10 package.
 - Refused to reinterpret Windows-only WSL packages on Ubuntu or execute K9s, kind, Flux, TFLint, and SOPS release artifacts or installer scripts before verified artifact handling exists.

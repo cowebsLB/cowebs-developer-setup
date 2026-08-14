@@ -1,0 +1,9 @@
+PackageIdentifier: COWebs.CLI
+PackageVersion: @VERSION@
+PackageLocale: en-US
+Publisher: COWebs.lb
+PackageName: COWebs CLI
+License: MIT
+ShortDescription: Deterministic cross-platform developer workstation setup controller.
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0

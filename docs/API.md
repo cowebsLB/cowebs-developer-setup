@@ -37,7 +37,7 @@ The PowerShell engine also accepts `-PackNames`, `-EssentialsOnly`, and `-ListPa
 
 There is no network service API.
 
-## Planned public COWebs CLI contract
+## Public COWebs CLI preview contract
 
 The stable cross-platform product entry point is planned as an umbrella `cowebs` CLI with `dev-setup` as the product identifier:
 
@@ -50,9 +50,9 @@ cowebs doctor dev-setup [options]
 cowebs update
 ```
 
-This command family is a roadmap contract, not an implemented or released interface. It will preserve the existing profile, repeatable pack, essentials-only, dry-run, non-interactive, configuration, restart, and JSON capabilities. The current `cowebs-setup` development CLI remains the engine until public dispatch, compatibility aliases, help, exit codes, completions, update integrity, and end-to-end behavior are implemented and tested.
+This command family is implemented in `cmd/cowebs` as a source preview. `dev-setup` is mandatory for product-scoped commands. Planning and installation accept profile, repeatable pack, essentials-only, dry-run, non-interactive, no-configuration, no-restart, architecture, platform, and JSON options. Exit code `2` denotes command-line usage, `3` denotes complete unsupported-package diagnostics, and `1` denotes other runtime failures. Bash, Zsh, and PowerShell completions and immutable-manifest update checks are covered by tests. No preview binary or Linux package has been published.
 
-The terminal CLI and any native graphical installer must call one shared typed Go application layer. The GUI must not parse terminal output or implement a second planner. Native package managers install or update the `cowebs` controller itself; `cowebs install dev-setup` then delegates the resolved developer-tool operations to the verified provider adapters and privileged broker.
+The terminal CLI calls `internal/application`, the shared typed Go application layer reserved for a future native GUI. A GUI must not parse terminal output or implement a second planner. Native package managers install or update the `cowebs` controller itself; `cowebs install dev-setup` delegates the resolved operations to verified provider adapters and privilege-partitioned brokers.
 
 ## Development architecture contracts (source-only in v6.2.0)
 
@@ -66,7 +66,7 @@ The `schema/` directory contains JSON Schema draft 2020-12 contracts for the fut
 
 Schema v3 provider entries declare package manager, exact provider ID, source, privilege, scope, native detection, typed installer options, and provider-specific estimates. Plans and broker messages identify allowlisted operations and intentionally contain no arbitrary command or shell field.
 
-The source-only Linux adapter currently accepts canonical plan operations for `ubuntu` and `fedora`. Ubuntu permits `apt-get`, Snap, and Flatpak; Fedora permits DNF, Snap, and Flatpak. APT, DNF, and Snap are currently machine-scoped elevated operations. Flatpak requires an explicit remote and either `user`/`user` or `elevated`/`machine` privilege and scope. Ubuntu APT repository prerequisites can be validated and rendered in dry-run form, but real prerequisite mutation deliberately fails until the controller provides a reviewed elevated and atomic implementation. These are internal execution contracts, not a released Linux CLI.
+The Linux adapter accepts canonical `ubuntu` and `fedora` plans. Ubuntu permits APT, Snap, and Flatpak; Fedora permits DNF, Snap, and Flatpak. APT, DNF, and Snap are machine-scoped elevated operations. Flatpak requires an explicit remote and either `user`/`user` or `elevated`/`machine` scope. Plans include typed `ensure-manager` operations that install missing Snap/Flatpak managers through fixed native package identities, scoped Flathub setup, one APT or DNF refresh, verified repository-key downloads, and constrained atomic APT source writes. The controller sends machine operations through one `sudo` child, validates and persists child events as a stream, and executes user operations in the initiating process. These contracts remain source-preview APIs until disposable real-install evidence and publication gates pass.
 
 Compile the production schema-v2 manifests into deterministic migration artifacts with:
 

@@ -33,6 +33,23 @@ func TestBuildPreservesInheritancePackAndDependencyOrder(t *testing.T) {
 	}
 }
 
+func TestPlannerRejectsMachinePackageDependingOnUserPackage(t *testing.T) {
+	userProvider := catalog.Provider{Manager: "flatpak", PackageID: "app.user.Tool", Source: "flathub", Privilege: "user", Scope: "user", Architectures: []string{"x64"}, Detection: catalog.Detection{Type: "manager-native"}, InstallOptions: []string{}}
+	machineProvider := catalog.Provider{Manager: "dnf", PackageID: "machine-tool", Privilege: "elevated", Scope: "machine", Architectures: []string{"x64"}, Detection: catalog.Detection{Type: "manager-native"}, InstallOptions: []string{}}
+	profiles := catalog.ProfileCatalog{SchemaVersion: 3, CorePackageIDs: []string{"machine"}, Profiles: []catalog.Profile{{ID: "test", Name: "Test"}}}
+	catalogs := &catalog.Catalogs{
+		CatalogSHA256: strings.Repeat("a", 64), Profiles: profiles,
+		ProfileByID: map[string]catalog.Profile{"test": {ID: "test", Name: "Test"}}, PackByID: map[string]catalog.Pack{},
+		PackageByID: map[string]catalog.Package{
+			"user":    {ID: "user", Dependencies: []string{}, Providers: map[string][]catalog.Provider{"fedora": {userProvider}}},
+			"machine": {ID: "machine", Dependencies: []string{"user"}, Providers: map[string][]catalog.Provider{"fedora": {machineProvider}}},
+		},
+	}
+	if _, err := Build(catalogs, Input{Platform: "fedora", Architecture: "x64", ProfileID: "test", EssentialsOnly: true}); err == nil || !strings.Contains(err.Error(), "unsupported privilege topology") {
+		t.Fatalf("expected privilege-topology rejection, got %v", err)
+	}
+}
+
 func TestValidateCanonicalRejectsModifiedOperation(t *testing.T) {
 	catalogs := testCatalogs()
 	plan, err := Build(catalogs, Input{Platform: "windows", Architecture: "x64", ProfileID: "child", EssentialsOnly: true})

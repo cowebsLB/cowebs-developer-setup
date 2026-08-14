@@ -1,0 +1,9 @@
+Package: cowebs
+Version: @VERSION@
+Section: devel
+Priority: optional
+Architecture: @DEB_ARCH@
+Maintainer: COWebs.lb <support@cowebslb.com>
+Description: COWebs cross-platform developer workstation controller
+ Deterministic profile planning, least-privilege installation, diagnostics,
+ journaling, and resumable setup for the dev-setup product.

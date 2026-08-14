@@ -65,11 +65,25 @@
               "required": ["kind"]
             },
             "then": { "required": ["manager", "scope"] }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "const": "ensure-manager" } },
+              "required": ["kind"]
+            },
+            "then": { "required": ["manager", "scope"] }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "const": "ensure-flatpak-remote" } },
+              "required": ["kind"]
+            },
+            "then": { "required": ["manager", "source", "url", "scope"] }
           }
         ],
         "properties": {
           "id": { "type": "string", "minLength": 1 },
-          "kind": { "enum": ["detect", "install", "configure", "restart-check", "ensure-repository-key", "ensure-apt-repository", "refresh-package-index"] },
+          "kind": { "enum": ["detect", "install", "configure", "restart-check", "ensure-manager", "ensure-flatpak-remote", "ensure-repository-key", "ensure-apt-repository", "refresh-package-index"] },
           "logicalPackageId": { "type": "string", "minLength": 1 },
           "manager": { "enum": ["winget", "brew", "brew-cask", "apt-get", "dnf", "snap", "flatpak"] },
           "packageId": { "type": "string", "minLength": 1 },

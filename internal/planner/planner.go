@@ -222,8 +222,37 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 			PackageIDs: unsupportedPackageIDs,
 		}
 	}
+	for _, id := range packageIDs {
+		for _, dependencyID := range c.PackageByID[id].Dependencies {
+			if providers[id].Privilege == "elevated" && providers[dependencyID].Privilege == "user" {
+				return nil, fmt.Errorf("unsupported privilege topology: machine package %q depends on user package %q", id, dependencyID)
+			}
+		}
+	}
 
-	operations := make([]Operation, 0, len(packageIDs)*2+len(selectedPrerequisites)*2+1)
+	operations := make([]Operation, 0, len(packageIDs)*2+len(selectedPrerequisites)*2+4)
+	providerPrerequisiteIDs := make(map[string]string)
+	for _, id := range packageIDs {
+		provider := providers[id]
+		switch provider.Manager {
+		case "snap":
+			operationID := "prerequisite:manager:snap"
+			providerPrerequisiteIDs[id] = operationID
+			if !operationExists(operations, operationID) {
+				operations = append(operations, Operation{ID: operationID, Kind: "ensure-manager", LogicalPackageID: id, Manager: "snap", Privilege: "elevated", Scope: "machine", DependsOn: []string{}})
+			}
+		case "flatpak":
+			managerID := "prerequisite:manager:flatpak"
+			if !operationExists(operations, managerID) {
+				operations = append(operations, Operation{ID: managerID, Kind: "ensure-manager", LogicalPackageID: id, Manager: "flatpak", Privilege: "elevated", Scope: "machine", DependsOn: []string{}})
+			}
+			remoteID := "prerequisite:flatpak:remote:" + provider.Source + ":" + provider.Scope
+			providerPrerequisiteIDs[id] = remoteID
+			if !operationExists(operations, remoteID) {
+				operations = append(operations, Operation{ID: remoteID, Kind: "ensure-flatpak-remote", LogicalPackageID: id, Manager: "flatpak", Source: provider.Source, URL: "https://flathub.org/repo/flathub.flatpakrepo", Privilege: provider.Privilege, Scope: provider.Scope, DependsOn: []string{managerID}})
+			}
+		}
+	}
 	repositoryOperationIDs := make([]string, 0, len(selectedPrerequisites))
 	for _, prerequisite := range selectedPrerequisites {
 		owner := prerequisiteOwners[prerequisite.ID]
@@ -254,6 +283,16 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 			Manager: "apt-get", Privilege: "elevated", Scope: "machine", DependsOn: append([]string{}, repositoryOperationIDs...),
 		})
 	}
+	dnfRefreshID := ""
+	if input.Platform == "fedora" {
+		for _, id := range packageIDs {
+			if providers[id].Manager == "dnf" {
+				dnfRefreshID = "prerequisite:dnf:refresh"
+				operations = append(operations, Operation{ID: dnfRefreshID, Kind: "refresh-package-index", LogicalPackageID: id, Manager: "dnf", Privilege: "elevated", Scope: "machine", DependsOn: []string{}})
+				break
+			}
+		}
+	}
 	installIDs := make([]string, 0, len(packageIDs))
 	for _, id := range packageIDs {
 		provider := providers[id]
@@ -269,8 +308,16 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 			Privilege: provider.Privilege, Scope: provider.Scope, DependsOn: dependencyInstalls,
 		})
 		installDependsOn := append(append([]string{}, dependencyInstalls...), detectID)
+		detectDependsOn := append([]string{}, dependencyInstalls...)
+		if prerequisiteID := providerPrerequisiteIDs[id]; prerequisiteID != "" {
+			detectDependsOn = append(detectDependsOn, prerequisiteID)
+		}
+		operations[len(operations)-1].DependsOn = detectDependsOn
 		if len(provider.PrerequisiteIDs) > 0 && refreshID != "" {
 			installDependsOn = append(installDependsOn, refreshID)
+		}
+		if provider.Manager == "dnf" && dnfRefreshID != "" {
+			installDependsOn = append(installDependsOn, dnfRefreshID)
 		}
 		operations = append(operations, Operation{
 			ID: installID, Kind: "install", LogicalPackageID: id,
@@ -303,6 +350,15 @@ func Build(c *catalog.Catalogs, input Input) (*Plan, error) {
 	}
 	plan.PlanID = deterministicPlanID(c.CatalogSHA256, input, selectedPacks)
 	return plan, nil
+}
+
+func operationExists(operations []Operation, id string) bool {
+	for _, operation := range operations {
+		if operation.ID == id {
+			return true
+		}
+	}
+	return false
 }
 
 func aptArchitecture(architecture string) string {
