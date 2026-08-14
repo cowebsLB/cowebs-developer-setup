@@ -70,7 +70,15 @@ jobs:
       - name: Provision Fedora 44 virtual machine and RPM
         run: |
           lxc launch images:fedora/44/cloud cowebs-fedora44 --vm -c security.secureboot=false -c limits.memory=4GiB
-          lxc exec cowebs-fedora44 -- bash -lc 'for attempt in {1..30}; do dnf --version >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
+          guest_ready=0
+          for attempt in {1..60}; do
+            if lxc exec cowebs-fedora44 -- dnf --version >/dev/null 2>&1; then
+              guest_ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$guest_ready" = 1
           lxc exec cowebs-fedora44 -- dnf -y install rpm-build sudo
           lxc exec cowebs-fedora44 -- mkdir -p /workspace/scripts /workspace/packaging/rpm /workspace/build/bundle/catalog /workspace/dist/linux-packages
           lxc file push ./scripts/build-linux-packages.sh cowebs-fedora44/workspace/scripts/build-linux-packages.sh

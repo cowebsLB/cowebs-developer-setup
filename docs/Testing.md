@@ -51,6 +51,8 @@ Run `31851423627` attempt 1 encountered transient Fedora mirror DNS failure befo
 
 Diagnostic run `31851784488` proved that Snap downloaded Code but failed when systemd started the generated SquashFS mount unit inside the shared-kernel LXD container. That environment is therefore not credited as Fedora completion. The guarded Fedora job now launches a full LXD VM with its own Fedora kernel; nested virtualization availability on standard GitHub-hosted runners remains an external CI capability to prove in the next dispatch.
 
+VM run `31851986797` successfully downloaded, unpacked, and started the Fedora virtual machine, proving the hosted runner exposed the required virtualization. Provisioning stopped because the workflow invoked `lxc exec` once before the guest agent was ready. Readiness now retries from the LXD host for up to two minutes, so an unavailable guest agent is polled rather than preventing the intended in-guest DNF check from starting.
+
 Real package installations must be tested in Windows Sandbox or a disposable VM before a major public release. Linux validation is guarded by `scripts/validate-linux-disposable.sh`, which refuses to run unless `COWEBS_DISPOSABLE=1` is present and either CI or a virtualization boundary is detected. The harness covers canonical planning, real or dry-run execution, status, and a second idempotency installation. It has not been executed in a real Linux environment in this worktree; unit, contract, and mocked adapter results are not represented as repository availability or real-install evidence.
 
 Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The v6.2.0 catalog passed this live check for all 86 IDs on 2026-08-09.
