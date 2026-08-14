@@ -55,6 +55,7 @@ All notable changes follow semantic versioning.
 - Fixed Linux diagnostics claiming a missing optional manager would block a plan after native manager provisioning was implemented.
 - Allowed Debian and RPM preview packages to be built independently so each disposable distribution validates only its native format.
 - Fixed Fedora disposable provisioning treating cloud-init's recoverable container status as an application failure; readiness is now bounded by the required DNF runtime.
+- Fixed the Fedora disposable safety flags being removed by `sudo` by assigning them explicitly in the unprivileged validation process environment.
 
 ### Testing
 

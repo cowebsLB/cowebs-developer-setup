@@ -45,6 +45,8 @@ Local release-candidate evidence on 2026-08-15 built and verified the Debian pac
 
 Guarded GitHub Actions run `31851004282` passed the complete Ubuntu native-package, real-install, canonical-plan, ownership, resume, and idempotency story. The first Fedora dispatch `31851006495` stopped before package provisioning because cloud-init returned its recoverable-error container status; the workflow now uses bounded DNF readiness instead, and that infrastructure-only attempt is not counted as product evidence.
 
+Fedora retry `31851169165` reached the native RPM installation and validation-user setup, then the disposable guard correctly refused execution because `sudo` had removed the two LXD-level safety variables. The workflow now assigns `CI=true` and `COWEBS_DISPOSABLE=1` after the user transition so the guarded script receives them without weakening its host-protection checks.
+
 Real package installations must be tested in Windows Sandbox or a disposable VM before a major public release. Linux validation is guarded by `scripts/validate-linux-disposable.sh`, which refuses to run unless `COWEBS_DISPOSABLE=1` is present and either CI or a virtualization boundary is detected. The harness covers canonical planning, real or dry-run execution, status, and a second idempotency installation. It has not been executed in a real Linux environment in this worktree; unit, contract, and mocked adapter results are not represented as repository availability or real-install evidence.
 
 Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The v6.2.0 catalog passed this live check for all 86 IDs on 2026-08-09.
