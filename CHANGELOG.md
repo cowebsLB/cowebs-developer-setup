@@ -56,6 +56,7 @@ All notable changes follow semantic versioning.
 - Allowed Debian and RPM preview packages to be built independently so each disposable distribution validates only its native format.
 - Fixed Fedora disposable provisioning treating cloud-init's recoverable container status as an application failure; readiness is now bounded by the required DNF runtime.
 - Fixed the Fedora disposable safety flags being removed by `sudo` by assigning them explicitly in the unprivileged validation process environment.
+- Added bounded failure-only Snap state and system-journal diagnostics to the disposable Fedora gate.
 
 ### Testing
 

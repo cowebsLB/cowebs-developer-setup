@@ -89,7 +89,11 @@ jobs:
           lxc exec cowebs-fedora44 -- bash -lc "printf '%s\n' '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/cowebs-wheel && chmod 0440 /etc/sudoers.d/cowebs-wheel"
       - name: Execute Fedora real-install, resume, parity, and idempotency gates
         run: |
-          lxc exec cowebs-fedora44 -- sudo -u cowebs -H env CI=true COWEBS_DISPOSABLE=1 bash /workspace/scripts/validate-linux-disposable.sh fedora real /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json
+          if ! lxc exec cowebs-fedora44 -- sudo -u cowebs -H env CI=true COWEBS_DISPOSABLE=1 bash /workspace/scripts/validate-linux-disposable.sh fedora real /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json; then
+            lxc exec cowebs-fedora44 -- snap changes || true
+            lxc exec cowebs-fedora44 -- journalctl --unit=snapd --no-pager --lines=100 || true
+            exit 1
+          fi
       - name: Remove disposable Fedora container
         if: always()
         run: lxc delete --force cowebs-fedora44 || true
