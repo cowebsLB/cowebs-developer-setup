@@ -139,6 +139,21 @@ assert_no_temporary_plan_leak() {
   fi
 }
 
+wait_for_native_manager_idle() {
+  if ! command -v snap >/dev/null; then
+    return
+  fi
+  for _ in {1..180}; do
+    if ! snap changes 2>/dev/null | awk 'NR > 1 && $2 == "Doing" { found = 1 } END { exit !found }'; then
+      return
+    fi
+    sleep 1
+  done
+  echo 'Snap did not finish native recovery within three minutes' >&2
+  snap changes >&2 || true
+  exit 1
+}
+
 run_core_story() {
   local root="$session_root/core"
   mkdir -p "$root"
@@ -213,6 +228,7 @@ run_matrix_story() {
   assert_owned_files "$interrupted"
   assert_journal_redacted "$interrupted/session.jsonl"
   assert_no_temporary_plan_leak
+  wait_for_native_manager_idle
   resume_install "$interrupted"
   cmp "$interrupted/expected-plan.json" "$interrupted/canonical-plan.json"
   assert_complete_state "$interrupted/state.json" true

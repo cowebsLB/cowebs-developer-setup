@@ -95,7 +95,7 @@ Do not bypass URL, size, or SHA-256 validation. The manifest and artifact URLs m
 
 ## Linux installation was interrupted
 
-Ctrl+C is forwarded to the elevated installer and the canonical temporary plan is cleaned up. The initiating user's journal preserves completed operations. Run `cowebs status dev-setup`, then `cowebs resume dev-setup --non-interactive` after the package manager has finished any native recovery it requests. Do not delete or edit the journal to force progress.
+Ctrl+C is forwarded to the elevated installer process group and the canonical temporary plan is cleaned up. The initiating user's journal preserves completed operations. Let any package-manager service change finish, run `cowebs status dev-setup`, then run `cowebs resume dev-setup --non-interactive`. For Snap, `snap changes` shows whether a server-side change is still `Doing`. Do not delete or edit the journal to force progress.
 
 ## Linux installation failed while offline
 
