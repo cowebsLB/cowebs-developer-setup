@@ -42,6 +42,8 @@ Cross-platform preview builds use `scripts/build-cross-platform.ps1`. It compile
 
 The signed release-candidate path is `.github/workflows/release-cross-platform-preview.yml`. For an immutable `vN.N.N-rc.N` tag on `main`, it reruns the full source suite, builds archives plus DEB/RPM, finalizes checksum/SBOM/manifest coverage, keylessly signs every top-level release file, generates GitHub provenance, creates a draft prerelease, verifies authenticated downloads, publishes it, and repeats byte/signature/bootstrap/runtime checks through public unauthenticated downloads. `scripts/finalize-cross-platform-release.ps1` is the deterministic local contract for package inclusion and tag-bound signature metadata.
 
+Version v6.3.0-rc.1 was published as a prerelease from commit `1b85f691dc85d0ad65999dd5b49bd8627a4d4458`. Normal CI `31856222715`, Ubuntu matrix `31856228013`, Fedora VM matrix `31856229843`, and signed release workflow `31856640404` passed. GitHub lists 18 public assets: nine release files and nine matching Sigstore bundles. Stable v6.2.0 remains the `latest` release.
+
 Do not create the tag until the Ubuntu and Fedora `matrix` jobs and normal CI pass on the exact commit. Tags are never moved after publication; a corrected build uses the next release-candidate number. The stable v6.2.0 Windows assets and `latest` status remain unchanged. Native APT/DNF repository publication, Windows runtime cutover, and stable Linux promotion are separate decisions.
 
 ## Architecture-migration artifacts

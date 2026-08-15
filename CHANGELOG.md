@@ -73,6 +73,7 @@ All notable changes follow semantic versioning.
 
 ### Testing
 
+- Passed normal Windows/Ubuntu/Fedora CI `31856222715`, Ubuntu disposable matrix `31856228013`, Fedora 44 VM matrix `31856229843`, and signed public release verification `31856640404` for v6.3.0-rc.1.
 - Added release workflow YAML/actionlint validation, signed-release contract coverage, XDG discovery and interrupt-forwarding static contracts, and disposable failure-matrix assertions.
 
 - Validated every executable Fedora DNF identity on Fedora 43/44 x64 and arm64 repository metadata, all Snap IDs/architectures through the official Snapcraft API, and all Flathub IDs/architectures through the official remote.

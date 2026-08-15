@@ -7,8 +7,8 @@
 | Windows v6.2.0 | Released and verified | Schema v2 plus `src/windows/setup.ps1` |
 | Go planner and schema v3 | Source-only, parity proven | Not included in the public runtime ZIP |
 | Windows Go adapter and broker | Source-only, tested | Runtime cutover still gated on real-install validation and controller-owned elevation |
-| Ubuntu/Fedora adapter | Complete classification, deterministic planning, and source-preview execution | Ubuntu 54/32 and live-validated Fedora 42/44 executable/unsupported; full real-install evidence pending |
-| Public `cowebs` CLI | Source-preview product surface implemented | Not published; Windows BAT and schema v2 remain production |
+| Ubuntu/Fedora adapter | Complete classification, deterministic planning, and preview execution | Ubuntu 54/32 and live-validated Fedora 42/44 executable/unsupported; Ubuntu 24.04/Fedora 44 x64 matrix evidence passed |
+| Public `cowebs` CLI | Signed cross-platform prerelease published | v6.3.0-rc.1 preview; Windows BAT and schema v2 remain production |
 | macOS | Planned after the Linux path | No adapter or provider catalog yet |
 
 ## Completed architecture foundation
@@ -100,10 +100,10 @@
 - [x] Build, install, and package-manager-verify the unsigned DEB on Ubuntu 24.04 and RPM on Fedora 44; verify root ownership and installed modes.
 - [x] Prove Fedora DNF installation, native snapd provisioning/activation, user-owned journals, persisted failure state, and resume retry inside a disposable systemd container; do not count the host-kernel SquashFS LZO limitation as full Snap evidence.
 - [x] Run core real installations only in disposable Ubuntu and Fedora environments: guarded Ubuntu run `31851004282` and Fedora VM run `31852156303` passed.
-- [ ] Complete the expanded disposable `matrix` workflow for partially provisioned/skipped packages, forced offline failure/recovery, and active interruption/resume on both Ubuntu and Fedora; the harness is implemented and awaiting green remote evidence.
-- [ ] Verify user-versus-machine ownership, fresh-login PATH, JSON-only/redacted journals, temporary-plan cleanup, and disposable-environment cleanup on both targets; assertions are implemented and awaiting green remote evidence.
+- [x] Complete the expanded disposable `matrix` workflow for partially provisioned/skipped packages, forced offline failure/recovery, and active interruption/resume: Ubuntu `31856228013` and Fedora VM `31856229843` passed.
+- [x] Verify user-versus-machine ownership, fresh-login PATH, JSON-only/redacted journals, temporary-plan cleanup, and disposable-environment cleanup on both targets in the same runs.
 - [x] Define the evidence-based support matrix in `docs/support-matrix.md`; update its release-candidate run references after the expanded matrix completes.
-- [ ] Publish a Linux release only after public asset hashes, downloaded bootstrap dry-runs, CI, and disposable-environment installation evidence all agree.
+- [x] Publish signed prerelease v6.3.0-rc.1 after public asset hashes, downloaded bootstrap/runtime checks, CI `31856222715`, and disposable installation evidence agreed; release workflow `31856640404` passed.
 - [ ] Verify that installation through native packages, the Unix bootstrap, the terminal CLI, and the optional GUI resolves the same canonical `dev-setup` plan for identical inputs.
 
 ## Parallel Windows runtime-cutover gates
@@ -122,7 +122,7 @@
 - [ ] Implement shared configuration intents through platform-specific handlers.
 - [x] Add resumable setup state for interrupted installations.
 - [x] Add guarded Ubuntu and Fedora disposable validation workflows with native-package installation, canonical-plan parity, resume, ownership, and idempotency gates; remote Ubuntu `31851004282` and Fedora VM `31852156303` runs passed.
-- [ ] Publish keyless Sigstore bundles, GitHub provenance, and publicly reverified checksums for the release candidate; the tag-bound pipeline and local contracts are implemented.
+- [x] Publish keyless Sigstore bundles, GitHub provenance, and publicly reverified checksums for v6.3.0-rc.1 in release workflow `31856640404`.
 - [ ] Begin the macOS Homebrew adapter and catalog only after the Linux provider/compiler pattern is proven reusable.
 
 ## Definition of done

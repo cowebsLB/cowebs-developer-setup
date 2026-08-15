@@ -50,7 +50,7 @@ cowebs doctor dev-setup [options]
 cowebs update
 ```
 
-This command family is implemented in `cmd/cowebs` as a source preview. `dev-setup` is mandatory for product-scoped commands. Planning and installation accept profile, repeatable pack, essentials-only, dry-run, non-interactive, no-configuration, no-restart, architecture, platform, and JSON options. Exit code `2` denotes command-line usage, `3` denotes complete unsupported-package diagnostics, and `1` denotes other runtime failures. Bash, Zsh, and PowerShell completions and immutable-manifest update checks are covered by tests. The `v6.3.0-rc.1` signed preview is prepared for publication only after the disposable failure matrix passes; the stable Windows runtime remains v6.2.0.
+This command family is implemented in `cmd/cowebs` and published as the signed `v6.3.0-rc.1` preview. `dev-setup` is mandatory for product-scoped commands. Planning and installation accept profile, repeatable pack, essentials-only, dry-run, non-interactive, no-configuration, no-restart, architecture, platform, and JSON options. Exit code `2` denotes command-line usage, `3` denotes complete unsupported-package diagnostics, and `1` denotes other runtime failures. Bash, Zsh, and PowerShell completions and immutable-manifest update checks are covered by tests. The stable Windows runtime remains v6.2.0.
 
 The terminal CLI calls `internal/application`, the shared typed Go application layer reserved for a future native GUI. A GUI must not parse terminal output or implement a second planner. Native package managers install or update the `cowebs` controller itself; `cowebs install dev-setup` delegates the resolved operations to verified provider adapters and privilege-partitioned brokers.
 

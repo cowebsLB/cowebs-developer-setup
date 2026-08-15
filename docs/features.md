@@ -60,5 +60,6 @@
 - Cross-platform binary/archive builder, checksum-pinned Unix bootstrap, signed release manifest, SHA-256 list, SPDX SBOM, Winget metadata, and Debian/RPM package definitions
 - Tag-bound keyless Sigstore bundles and GitHub artifact provenance with draft and unauthenticated public-download verification
 - Disposable Linux failure matrix covering interruption/resume, partial inventory, forced offline failure/recovery, fresh-login PATH, ownership, redaction, cleanup, and repeat-run idempotency
+- Published v6.3.0-rc.1 cross-platform preview with nine payload/metadata files and one matching Sigstore bundle for each
 - Exact black-box parity with the PowerShell planner across every profile and selection mode
 - The Go binary and schema-v3 catalogs remain excluded from the v6.2 runtime bundle pending an approved cutover

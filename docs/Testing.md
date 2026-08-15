@@ -59,4 +59,6 @@ Real package installations must be tested in Windows Sandbox or a disposable VM 
 
 `tests/test-signed-release.ps1` covers native-package inclusion, eight-record manifest completeness, signature-pair rules, checksum coverage, and SBOM coverage. The release workflow is parsed as YAML and linted with actionlint before tagging. After publication it independently verifies every public byte and Sigstore bundle, the GitHub attestation, the downloaded bootstrap, binary version output, and default XDG catalog discovery.
 
+Final v6.3.0-rc.1 evidence: local `tests/run-tests.ps1` passed in 242.8 seconds; normal CI `31856222715` passed Windows, Ubuntu, and Fedora; Ubuntu disposable matrix `31856228013` passed; Fedora 44 VM matrix `31856229843` passed; and release workflow `31856640404` passed build, signature, provenance, draft, public-download, bootstrap, version, and catalog-discovery verification.
+
 Before publishing a catalog release, validate each Windows ID with `winget show --id ID --exact --source winget`. The v6.2.0 catalog passed this live check for all 86 IDs on 2026-08-09.

@@ -6,10 +6,10 @@ This matrix separates production support, real disposable evidence, and planning
 | --- | --- | --- | --- | --- |
 | Windows 10/11 and Server 2016+ | x64 | Stable v6.2 `master-setup.bat` | Schema-v2 PowerShell runtime, live Winget identity validation, CI and public dry-run | Production Windows path |
 | Windows | x64 | v6.3.0-rc.1 archive | Go binary build and dry-run contracts only | Preview; real Go runtime cutover blocked |
-| Ubuntu 24.04 | x64 | v6.3.0-rc.1 archive and DEB | Real native-package/core installation, ownership, resume and idempotency passed in guarded run `31851004282`; expanded failure matrix must pass before publication | Release-candidate target |
+| Ubuntu 24.04 | x64 | v6.3.0-rc.1 archive and DEB | Native package, interruption/resume, partial skip, offline recovery, ownership, redaction, PATH, idempotency and cleanup passed in guarded run `31856228013` | Published prerelease target |
 | Ubuntu 24.04 | arm64 | v6.3.0-rc.1 archive | Deterministic planning and cross-compilation only | Experimental; no real installation evidence |
 | Fedora 43 | x64 | v6.3.0-rc.1 archive and RPM compatibility | Official repository/Snap/Flathub validation and Fedora CI adapter tests | Preview; no full Fedora 43 VM installation |
-| Fedora 44 | x64 | v6.3.0-rc.1 archive and RPM | Real Fedora VM native-package/core installation, DNF/Snap, ownership, resume, idempotency and cleanup passed in guarded run `31852156303`; expanded failure matrix must pass before publication | Release-candidate target |
+| Fedora 44 | x64 | v6.3.0-rc.1 archive and RPM | Native package, DNF/Snap, interruption/resume, partial skip, offline recovery, ownership, redaction, PATH, idempotency and cleanup passed in guarded VM run `31856229843` | Published prerelease target |
 | Fedora 43-44 | arm64 | v6.3.0-rc.1 archive | Official repository metadata, Snap/Flathub identity validation, deterministic planning and cross-compilation | Experimental; no real installation evidence |
 | macOS | any | None | Placeholder documentation only | Unsupported |
 
