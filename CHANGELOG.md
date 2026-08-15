@@ -65,6 +65,7 @@ All notable changes follow semantic versioning.
 - Validated every executable Fedora DNF identity on Fedora 43/44 x64 and arm64 repository metadata, all Snap IDs/architectures through the official Snapcraft API, and all Flathub IDs/architectures through the official remote.
 - Built, installed, and package-manager-verified the DEB in Ubuntu 24.04 and the RPM in Fedora 44, including root ownership and installed file modes.
 - Proved Fedora native manager provisioning, snapd activation, streamed failure journaling, and resume retry in a disposable systemd container; full VS Code Snap completion remains assigned to the VM/LXD gate because Docker Desktop lacks SquashFS LZO support.
+- Passed guarded Ubuntu run `31851004282` and Fedora VM run `31852156303`, including native-package installation, real core setup, canonical-plan equality, initiating-user state ownership, completed-state resume, and second-run idempotency.
 
 ### Security
 

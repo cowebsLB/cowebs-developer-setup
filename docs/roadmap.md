@@ -99,8 +99,8 @@
 - [x] Configure non-installing compiler, planner, adapter, public-CLI, bootstrap, and disposable dry-run CI coverage for Ubuntu and Fedora.
 - [x] Build, install, and package-manager-verify the unsigned DEB on Ubuntu 24.04 and RPM on Fedora 44; verify root ownership and installed modes.
 - [x] Prove Fedora DNF installation, native snapd provisioning/activation, user-owned journals, persisted failure state, and resume retry inside a disposable systemd container; do not count the host-kernel SquashFS LZO limitation as full Snap evidence.
-- [ ] Run real installations only in disposable Ubuntu and Fedora VMs or equivalent isolated environments.
-- [ ] Test fresh installation, partially provisioned hosts, already-installed packages, skipped packages, network/source failure, interrupted execution, resume, and a second idempotency run.
+- [x] Run core real installations only in disposable Ubuntu and Fedora environments: guarded Ubuntu run `31851004282` and Fedora VM run `31852156303` passed.
+- [ ] Complete the remaining partially provisioned, skipped-package, forced network/source failure, and active interruption scenarios; fresh core installation, completed-state resume, already-installed detection, and second-run idempotency passed on Ubuntu and Fedora.
 - [ ] Verify user-versus-machine ownership, PATH/session behavior, logs, cleanup, and absence of credential or raw installer-output persistence.
 - [ ] Record the supported distribution/version/architecture matrix from evidence gathered during the release candidate.
 - [ ] Publish a Linux release only after public asset hashes, downloaded bootstrap dry-runs, CI, and disposable-environment installation evidence all agree.
@@ -121,7 +121,7 @@
 - [ ] Complete per-platform mappings with explicit unsupported-package reporting.
 - [ ] Implement shared configuration intents through platform-specific handlers.
 - [x] Add resumable setup state for interrupted installations.
-- [x] Add guarded Ubuntu and Fedora disposable validation workflows with native-package installation, canonical-plan parity, resume, ownership, and idempotency gates; remote recorded runs remain pending.
+- [x] Add guarded Ubuntu and Fedora disposable validation workflows with native-package installation, canonical-plan parity, resume, ownership, and idempotency gates; remote Ubuntu `31851004282` and Fedora VM `31852156303` runs passed.
 - [ ] Add release signing and publish verified checksums; release-manifest verification and SBOM generation are implemented.
 - [ ] Begin the macOS Homebrew adapter and catalog only after the Linux provider/compiler pattern is proven reusable.
 
@@ -144,4 +144,4 @@
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The remaining critical path is full-environment evidence and publication rather than core source implementation: run the guarded Ubuntu and Fedora workflows, complete fresh/partial/skipped/network-failure/interruption/resume/idempotency coverage on kernels that support every selected package, verify PATH/session behavior and cleanup, select and execute a signing design, and only then publish and re-download assets. Fedora primary-source validation and local DEB/RPM build/install verification are complete. The optional native GUI, public package-repository submissions, macOS support, and Windows Go runtime cutover remain separate future work.
+The remaining critical path is failure/recovery evidence and signed publication rather than core source implementation: complete partial/skipped/network-failure/interruption coverage, verify PATH/session behavior and cleanup, configure and execute the signing design, and only then publish and re-download assets. Fedora primary-source validation, local DEB/RPM verification, and guarded Ubuntu/Fedora core real-install/resume/idempotency runs are complete. The optional native GUI, public package-repository submissions, macOS support, and Windows Go runtime cutover remain separate future work.
