@@ -3,6 +3,10 @@
 - Status: Accepted
 - Date: 2026-08-07
 
+## Implementation status
+
+Implemented in the v6.3.0-rc.1 preview as a strictly decoded, redacted JSONL journal plus flushed atomic state snapshot. Guarded Ubuntu and Fedora interruption/resume matrices passed; no application database was introduced.
+
 ## Context
 
 The current engine writes human-readable text logs and final counters. It cannot durably distinguish unattempted, successful, skipped, retryable, blocked, cancelled, configuration-failed, or restart-pending operations after interruption. A future CLI, broker, resume command, and optional GUI need one machine-readable execution model.

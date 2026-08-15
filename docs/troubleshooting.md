@@ -108,3 +108,5 @@ The bootstrap installs the executable in `$HOME/.local/bin`. Start a new login s
 ## Verify a release signature
 
 Download the release file and its matching `.sigstore.json` bundle, then run `cosign verify-blob --bundle FILE.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/cowebsLB/cowebs-developer-setup/.github/workflows/release-cross-platform-preview.yml@refs/tags/vVERSION FILE`. The identity must match the exact release tag. SHA-256 checksums remain mandatory; signature verification does not replace them.
+
+For v6.3.0-rc.1, replace `vVERSION` with `v6.3.0-rc.1` and use the exact matching bundle name. Compare payload hashes with both `SHA256SUMS` and the [recorded release ledger](releases/6.3.0-rc.1.md). If the checksum, bundle identity, GitHub attestation, declared size, or tag differs, stop: do not execute the file, do not reuse a bundle from another asset or tag, and report the exact filename and failing verification step without posting credentials or authentication output.

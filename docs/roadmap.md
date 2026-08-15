@@ -72,7 +72,7 @@
 
 ### Phase 5: Public COWebs CLI product surface — source implementation complete
 
-- [x] Make `cowebs install dev-setup` the interactive/non-interactive source-preview installation entry point.
+- [x] Make `cowebs install dev-setup` the interactive/non-interactive published-preview installation entry point.
 - [x] Define the plan, install, status, resume, doctor, and update command family.
 - [x] Treat `dev-setup` as a stable product identifier.
 - [x] Preserve profile, repeatable pack, essentials-only, dry-run, non-interactive, configuration, restart, and JSON grammar.
@@ -90,14 +90,14 @@
 - [x] Build versioned Windows x64 and Linux x64/arm64 `cowebs` binaries from one version source; publication remains gated.
 - [x] Generate a release manifest recording platform, architecture, artifact name, size, digest, and minimum environment.
 - [x] Keep the bootstrap free of mutable default-branch execution, repository cloning, credentials, and arbitrary install commands.
-- [x] Generate checksums and an SPDX SBOM; signing remains required before stable publication.
+- [x] Generate checksums and an SPDX SBOM; v6.3.0-rc.1 release files are signed with tag-bound Sigstore bundles, while stable promotion remains a separate decision.
 - [x] Preserve `master-setup.bat` as the released Windows single-file experience.
 - [ ] Make the optional native installer a graphical frontend over the same shared controller used by `cowebs install dev-setup`, with identical plans, consent, progress, journal, resume, and failure semantics.
 
 ### Phase 7: Disposable-environment validation and Linux release gate
 
 - [x] Configure non-installing compiler, planner, adapter, public-CLI, bootstrap, and disposable dry-run CI coverage for Ubuntu and Fedora.
-- [x] Build, install, and package-manager-verify the unsigned DEB on Ubuntu 24.04 and RPM on Fedora 44; verify root ownership and installed modes.
+- [x] Build, install, and package-manager-verify initial unsigned DEB/RPM candidates on Ubuntu 24.04 and Fedora 44; the published v6.3.0-rc.1 package blobs have matching Sigstore bundles, and root ownership and installed modes were verified.
 - [x] Prove Fedora DNF installation, native snapd provisioning/activation, user-owned journals, persisted failure state, and resume retry inside a disposable systemd container; do not count the host-kernel SquashFS LZO limitation as full Snap evidence.
 - [x] Run core real installations only in disposable Ubuntu and Fedora environments: guarded Ubuntu run `31851004282` and Fedora VM run `31852156303` passed.
 - [x] Complete the expanded disposable `matrix` workflow for partially provisioned/skipped packages, forced offline failure/recovery, and active interruption/resume: Ubuntu `31856228013` and Fedora VM `31856229843` passed.
@@ -121,7 +121,7 @@
 - [ ] Complete per-platform mappings with explicit unsupported-package reporting.
 - [ ] Implement shared configuration intents through platform-specific handlers.
 - [x] Add resumable setup state for interrupted installations.
-- [x] Add guarded Ubuntu and Fedora disposable validation workflows with native-package installation, canonical-plan parity, resume, ownership, and idempotency gates; remote Ubuntu `31851004282` and Fedora VM `31852156303` runs passed.
+- [x] Add guarded Ubuntu and Fedora disposable validation workflows with native-package installation, canonical-plan parity, interruption/resume, partial inventory, offline recovery, PATH/session, ownership, redaction, cleanup, and idempotency gates; core runs `31851004282`/`31852156303` and expanded runs `31856228013`/`31856229843` passed.
 - [x] Publish keyless Sigstore bundles, GitHub provenance, and publicly reverified checksums for v6.3.0-rc.1 in release workflow `31856640404`.
 - [ ] Begin the macOS Homebrew adapter and catalog only after the Linux provider/compiler pattern is proven reusable.
 
@@ -144,4 +144,4 @@
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The remaining critical path is execution evidence and signed publication rather than source design: obtain green expanded-matrix runs on Ubuntu and Fedora, then tag the exact passing commit and let the release-candidate workflow sign, attest, publish, and publicly re-download every asset. Fedora primary-source validation, local DEB/RPM verification, guarded core real-install evidence, the support matrix, and the signing/public-verification pipeline are implemented. The optional native GUI, public package-repository submissions, macOS support, and Windows Go runtime cutover remain separate future work.
+The Linux prerelease critical path is complete: the expanded Ubuntu/Fedora matrices passed, exact source commit `1b85f691dc85d0ad65999dd5b49bd8627a4d4458` was tagged, and release workflow `31856640404` signed, attested, published, and publicly re-downloaded every v6.3.0-rc.1 file. Remaining roadmap work is deliberately separate: canonical parity through every product surface including a future GUI, native APT/DNF and Windows package-repository publication, stable Linux promotion, macOS support, and the Windows Go runtime cutover gates.

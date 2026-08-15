@@ -6,11 +6,25 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
-- Prepared the `v6.3.0-rc.1` cross-platform preview without changing the stable v6.2.0 Windows runtime or `latest` release.
+- Reconciled every current documentation surface with the published v6.3.0-rc.1 state, complete CI/disposable evidence, stable-versus-preview boundaries, remaining roadmap, and full 18-asset size/SHA-256 ledger while preserving historical worklogs.
+
+### Fixed
+
+- Made the Windows conflict-diagnostic test tolerate host-width line wrapping between words while still requiring the complete conflict phrase.
+
+### Testing
+
+- Passed the focused Windows manifest/profile/bootstrap/documentation test, the complete non-installing suite in 282.6 seconds, whitespace validation, a 26-file local Markdown link audit, and a living-document stale-status scan after the documentation audit.
+
+## [6.3.0-rc.1] - 2026-08-15
+
+### Changed
+
+- Published the signed `v6.3.0-rc.1` cross-platform preview without changing the stable v6.2.0 Windows runtime or `latest` release.
 - Expanded guarded Ubuntu and Fedora validation to cover interruption/resume, partial inventory, forced offline recovery, fresh-login PATH, redacted state, cleanup, and repeat-run idempotency.
 - Added the evidence-tiered Ubuntu/Fedora/architecture support matrix and explicit stable-versus-preview boundaries.
 
-- Advanced the Linux roadmap from planning-only foundations to a source-preview controller and public CLI while preserving schema v2 and `master-setup.bat` as the released Windows runtime.
+- Advanced the Linux roadmap from planning-only foundations to a published preview controller and public CLI while preserving schema v2 and `master-setup.bat` as the released Windows runtime.
 - Completed live Fedora 43/44, Snapcraft, and Flathub validation over all 86 shared logical keys: 42 executable DNF/Snap/Flatpak providers and 44 explicit unsupported results without profile forks.
 - Mapped supported Linux Git, Git LFS, VS Code, and Node configuration intents and kept GitHub, AWS, Azure, account, license, and unsupported configuration explicit and manual.
 - Extended Linux diagnostics for distribution, architecture, required/optional managers, Flathub state, workspace paths, and catalog integrity.
@@ -73,7 +87,7 @@ All notable changes follow semantic versioning.
 
 ### Testing
 
-- Passed normal Windows/Ubuntu/Fedora CI `31856222715`, Ubuntu disposable matrix `31856228013`, Fedora 44 VM matrix `31856229843`, and signed public release verification `31856640404` for v6.3.0-rc.1.
+- Passed normal Windows/Ubuntu/Fedora CI `31856222715`, Ubuntu disposable matrix `31856228013`, Fedora 44 VM matrix `31856229843`, signed public release verification `31856640404`, and post-publication documentation CI `31857144843` for v6.3.0-rc.1.
 - Added release workflow YAML/actionlint validation, signed-release contract coverage, XDG discovery and interrupt-forwarding static contracts, and disposable failure-matrix assertions.
 
 - Validated every executable Fedora DNF identity on Fedora 43/44 x64 and arm64 repository metadata, all Snap IDs/architectures through the official Snapcraft API, and all Flathub IDs/architectures through the official remote.

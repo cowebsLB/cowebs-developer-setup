@@ -2,6 +2,8 @@
 
 Architecture Decision Records capture durable technical decisions for the cross-platform redesign. Accepted ADRs are binding until superseded by a later record. They do not change the production runtime unless an implementation milestone explicitly says so.
 
+All four accepted decisions are implemented in the signed v6.3.0-rc.1 preview. They have not changed the stable v6.2 schema-v2/PowerShell Windows runtime; Windows Go cutover still requires a separate decision and validation milestone.
+
 | ADR | Status | Decision |
 | --- | --- | --- |
 | [0001](0001-cross-platform-go-core.md) | Accepted | Build the future orchestration core as a compiled Go CLI through staged replacement. |

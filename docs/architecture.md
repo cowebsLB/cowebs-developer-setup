@@ -11,7 +11,7 @@ master-setup.bat
         -> config/profiles.json
         -> src/windows/setup.ps1
         -> released Windows adapter
-        -> source-preview Linux controller and adapters
+        -> published-prerelease Linux controller and adapters
         -> future macOS adapter
 ```
 
@@ -27,7 +27,7 @@ master-setup.bat
 
 ## Platform adapter layer
 
-The Windows PowerShell adapter owns the released Winget runtime. The source-preview Go Linux adapter owns Ubuntu/Fedora detection and direct APT, DNF, Snap, and Flatpak execution. It also performs bounded HTTPS key retrieval, digest verification, constrained atomic repository writes, one metadata refresh, typed native manager installation/activation, scoped remote setup, and Linux configuration handlers. `internal/application` is the shared frontend boundary. It partitions the canonical plan so machine operations cross one explicit `sudo` handoff while user Flatpak and configuration operations remain in the initiating user's process. The parent validates and persists elevated events as a stream, so completed work remains resumable even when a later operation fails. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
+The Windows PowerShell adapter owns the stable Winget runtime. The published-prerelease Go Linux adapter owns Ubuntu/Fedora detection and direct APT, DNF, Snap, and Flatpak execution. It also performs bounded HTTPS key retrieval, digest verification, constrained atomic repository writes, one metadata refresh, typed native manager installation/activation, scoped remote setup, and Linux configuration handlers. `internal/application` is the shared frontend boundary. It partitions the canonical plan so machine operations cross one explicit `sudo` handoff while user Flatpak and configuration operations remain in the initiating user's process. The parent validates and persists elevated events as a stream, so completed work remains resumable even when a later operation fails. Future adapters must consume the same logical package/profile contract while keeping operating-system behavior isolated.
 
 Windows estimates are catalog-driven. The manifest supplies conservative fallback and disk-heavy ranges plus overrides for unusually large packages. The adapter sums the resolved dependency-free plan before Winget runs; estimates describe a fresh setup and are not a promise of exact transfer size or duration.
 
@@ -56,7 +56,7 @@ The v6.2 source tree includes a development redesign foundation with versioned c
 - `internal/doctor` executes diagnostic checks across OS compatibility, package manager availability, workspace directories, and catalog integrity.
 - `cmd/cowebs` exposes the public preview command family under the stable `dev-setup` product identifier; `cmd/cowebs-setup` remains the development compatibility entry point.
 
-The planner retains exact black-box parity with the production PowerShell planner. Tests compile all 86 Ubuntu and Fedora classifications, prove deterministic core and bounded plans, validate typed APT/DNF/Snap/Flatpak prerequisites, exercise verified atomic repository writes with injected downloads, test privilege partitioning and configuration handling, and verify the public CLI and signed cross-platform release outputs. Core installation evidence has passed on disposable Ubuntu 24.04 and Fedora 44. The expanded failure/interruption/session matrix and public signed-release workflow remain the release-candidate gates, and schema v2 remains authoritative for the public Windows v6.2 runtime.
+The planner retains exact black-box parity with the production PowerShell planner. Tests compile all 86 Ubuntu and Fedora classifications, prove deterministic core and bounded plans, validate typed APT/DNF/Snap/Flatpak prerequisites, exercise verified atomic repository writes with injected downloads, test privilege partitioning and configuration handling, and verify the public CLI and signed cross-platform release outputs. Core and expanded failure/interruption/session evidence passed on disposable Ubuntu 24.04 and Fedora 44, and the tag-triggered workflow signed, attested, published, and publicly reverified v6.3.0-rc.1. Schema v2 remains authoritative for the stable Windows v6.2 runtime.
 
 ## Target architecture
 
@@ -72,6 +72,6 @@ native package / generated BAT / Unix bootstrap
             -> structured events, JSONL journal, atomic resume state
 ```
 
-`cowebs` is the planned stable umbrella CLI and `dev-setup` is its product identifier. The current `cmd/cowebs-setup` entry point remains the development engine until the shared application layer and public dispatch contract are implemented with compatibility coverage. CLI and GUI frontends must share typed controller services rather than invoking each other or duplicating planning and execution rules.
+`cowebs` is the published preview umbrella CLI and `dev-setup` is its stable product identifier. `cmd/cowebs-setup` remains the development compatibility entry point; `cmd/cowebs` and `internal/application` implement the public dispatch and shared service boundary. Any future GUI must consume those typed controller services rather than invoke the CLI or duplicate planning and execution rules.
 
-The accepted decisions and compatibility constraints are recorded in [docs/adr](adr/README.md). Runtime cutover remains blocked on disposable-VM parity and real-install validation.
+The accepted decisions and compatibility constraints are recorded in [docs/adr](adr/README.md). Windows runtime cutover remains blocked on controller-owned `RunAs`, disposable-Windows real-install evidence, and a separately approved release. Linux stable promotion remains separate from the signed prerelease.

@@ -70,6 +70,8 @@ Cross-platform preview artifacts can be built locally without changing the relea
 
 The signed [v6.3.0-rc.1 cross-platform prerelease](https://github.com/cowebsLB/cowebs-developer-setup/releases/tag/v6.3.0-rc.1) contains Windows and Linux binaries, deterministic catalogs, an immutable checksum-pinned Unix bootstrap, a release manifest, SHA-256 checksums, an SPDX SBOM, and x64 DEB/RPM packages. Guarded Ubuntu 24.04 and Fedora 44 failure/recovery matrices passed, and every public file has a tag-bound Sigstore bundle plus GitHub provenance. Schema v2 and the stable Windows v6.2 engine remain authoritative; `master-setup.bat` and the GitHub `latest` release are unchanged. See the [support matrix](docs/support-matrix.md), [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and [ADRs](docs/adr/README.md).
 
+The prerelease was built from immutable source commit `1b85f691dc85d0ad65999dd5b49bd8627a4d4458`. Its nine release files and nine matching Sigstore bundles passed normal CI, both disposable Linux matrices, signed publication verification, and an independent public hash/provenance audit. Exact artifact sizes, SHA-256 digests, verification commands, run IDs, and known limits are recorded in the [v6.3.0-rc.1 release notes](docs/releases/6.3.0-rc.1.md).
+
 For unattended v6.2 runs, pass `--non-interactive` to suppress per-package confirmation. Interactive runs check whether a package is already installed before asking for confirmation, and accept `>skip`, `skip`, or `s` to omit a needed package.
 
 ## Safety

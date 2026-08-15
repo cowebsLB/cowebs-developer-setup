@@ -45,7 +45,7 @@ The temporary payload is removed after success or failure unless `--keep-temp` i
 
 ## Other operating systems
 
-macOS remains an architectural placeholder. Ubuntu and Fedora now have source-preview planning and execution through APT, DNF, Snap, and Flatpak. Ubuntu has 54 executable providers and 32 explicit unsupported results; Fedora has 42 executable providers and 44 explicit unsupported results over the same 86 logical keys. Linux plans include typed native manager installation and activation, scoped Flathub setup, verified and atomic Ubuntu repositories, one metadata refresh, user/elevated partitioning, and explicit manual authentication intent.
+macOS remains an architectural placeholder. Ubuntu and Fedora now have signed-prerelease planning and execution through APT, DNF, Snap, and Flatpak. Ubuntu has 54 executable providers and 32 explicit unsupported results; Fedora has 42 executable providers and 44 explicit unsupported results over the same 86 logical keys. Linux plans include typed native manager installation and activation, scoped Flathub setup, verified and atomic Ubuntu repositories, one metadata refresh, user/elevated partitioning, and explicit manual authentication intent.
 
 Build and inspect the preview locally:
 

@@ -171,7 +171,7 @@ $output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $eng
 $ErrorActionPreference = $previousErrorAction
 $joined = $output -join "`n"
 Assert-True ($LASTEXITCODE -ne 0) 'Conflicting Python environment packs should fail.'
-Assert-True ($joined -match 'Package conflict') 'Conflicting pack failure did not explain the package conflict.'
+Assert-True ($joined -match 'Package\s+conflict') 'Conflicting pack failure did not explain the package conflict.'
 
 $output = & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $enginePath -Profile ai -EssentialsOnly -PackNames 'ai-conda' -DryRun -NoConfig -NoRestart 2>&1
 Assert-True ($LASTEXITCODE -eq 0) 'Conda pack should work when the recommended uv pack is disabled.'

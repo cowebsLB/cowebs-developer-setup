@@ -3,6 +3,10 @@
 - Status: Accepted
 - Date: 2026-08-07
 
+## Implementation status
+
+Implemented for the v6.3.0-rc.1 Linux preview as one direct-argument `sudo` handoff with user-scoped work retained by the initiating process, streamed validated events, process-group interruption, and bounded cleanup. The Go Windows controller-owned `RunAs` handoff remains a cutover gate; stable v6.2 keeps its existing single bootstrap elevation.
+
 ## Context
 
 The v6.1 BAT requests elevation before payload download, verification, extraction, planning, installation, and user configuration. This consolidates UAC prompts but expands the privileged network, archive, and configuration surface. Future platforms also distinguish user-scoped managers such as Homebrew from machine-scoped managers such as APT and DNF.

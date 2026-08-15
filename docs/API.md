@@ -52,6 +52,8 @@ cowebs update
 
 This command family is implemented in `cmd/cowebs` and published as the signed `v6.3.0-rc.1` preview. `dev-setup` is mandatory for product-scoped commands. Planning and installation accept profile, repeatable pack, essentials-only, dry-run, non-interactive, no-configuration, no-restart, architecture, platform, and JSON options. Exit code `2` denotes command-line usage, `3` denotes complete unsupported-package diagnostics, and `1` denotes other runtime failures. Bash, Zsh, and PowerShell completions and immutable-manifest update checks are covered by tests. The stable Windows runtime remains v6.2.0.
 
+The public preview artifacts are bound to release manifest v1 and source tag `v6.3.0-rc.1`; the manifest records exact platform, architecture, filename, byte size, SHA-256, minimum environment, immutable URL, and tag-specific signature bundle metadata. This API contract does not promote schema v3 to the stable Windows runtime or authorize arbitrary catalog commands.
+
 The terminal CLI calls `internal/application`, the shared typed Go application layer reserved for a future native GUI. A GUI must not parse terminal output or implement a second planner. Native package managers install or update the `cowebs` controller itself; `cowebs install dev-setup` delegates the resolved operations to verified provider adapters and privilege-partitioned brokers.
 
 ## Development architecture contracts (source-only in v6.2.0)

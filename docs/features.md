@@ -35,7 +35,7 @@
 | Ubuntu 24.04 x64 | Preview planning and least-privilege execution; core disposable install passed | Eighty-six classifications: fifty-four executable providers and thirty-two explicit unsupported results |
 | Fedora 44 x64 | Preview planning and least-privilege execution; core disposable VM install passed | Eighty-six classifications: forty-two executable providers and forty-four explicit unsupported results |
 
-## Development architecture modernization (source-only in v6.2.0)
+## Cross-platform preview in v6.3.0-rc.1
 
 - Provider-aware package and profile schemas for the future cross-platform core
 - Typed execution-plan, event, and release-manifest contracts
@@ -61,5 +61,6 @@
 - Tag-bound keyless Sigstore bundles and GitHub artifact provenance with draft and unauthenticated public-download verification
 - Disposable Linux failure matrix covering interruption/resume, partial inventory, forced offline failure/recovery, fresh-login PATH, ownership, redaction, cleanup, and repeat-run idempotency
 - Published v6.3.0-rc.1 cross-platform preview with nine payload/metadata files and one matching Sigstore bundle for each
+- Passed complete Ubuntu 24.04 and Fedora 44 disposable failure/recovery matrices plus unauthenticated public checksum, signature, provenance, bootstrap, runtime, and catalog verification
 - Exact black-box parity with the PowerShell planner across every profile and selection mode
 - The Go binary and schema-v3 catalogs remain excluded from the v6.2 runtime bundle pending an approved cutover

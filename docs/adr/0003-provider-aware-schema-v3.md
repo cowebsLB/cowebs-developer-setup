@@ -3,6 +3,10 @@
 - Status: Accepted
 - Date: 2026-08-07
 
+## Implementation status
+
+Implemented as deterministic schema-v3 preview catalogs compiled from schema v2 plus reviewed platform compatibility input. The v6.3.0-rc.1 artifacts contain those generated catalogs; schema v2 remains the production source of truth and generated v3 output is not hand-maintained.
+
 ## Context
 
 Schema v2 provides stable logical keys, profiles, packs, dependencies, conflicts, and Windows Winget mappings. It also places `installStrategy: winget` on every package, stores Windows estimates at catalog root, and permits a raw `wingetOverride` string. Adding more manager IDs to the same shape would mix logical intent with platform execution and leave privilege, scope, detection, architecture, and unsupported-platform behavior implicit.

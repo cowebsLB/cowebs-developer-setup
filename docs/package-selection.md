@@ -38,6 +38,8 @@ Defaults follow four rules:
 
 Use `master-setup.bat --list-packs` for authoritative pack keys. Use `--dry-run` to review the complete dependency-expanded plan before installing.
 
+The signed v6.3.0-rc.1 Linux preview consumes these same logical profiles and packs through the deterministic schema-v2 compatibility compiler; it does not maintain forked Linux profile lists. Ubuntu exposes 54 reviewed executable providers and 32 explicit unsupported results, while Fedora exposes 42 and 44 respectively. Always inspect `cowebs plan dev-setup` and the [support matrix](support-matrix.md): an unsupported result is an intentional fail-closed boundary, not permission to substitute an unverified package or installer.
+
 ## Important choices
 
 - `ai-python-modern` and `ai-conda` are alternative environment strategies. Use `--essentials-only --pack ai-conda` for Conda.

@@ -25,3 +25,13 @@ This matrix separates production support, real disposable evidence, and planning
 - The v6.3.0-rc.1 DEB and RPM are x64 packages. The Linux arm64 archive is planning/artifact evidence only.
 - Sigstore bundles authenticate GitHub release-candidate files and GitHub attestations prove build provenance. They are not native APT repository `Release` signatures or RPM repository metadata signatures.
 - The Windows archive does not replace `master-setup.bat`; Windows Go execution remains gated.
+
+## Evidence ledger
+
+- Source/tag: `v6.3.0-rc.1` at `1b85f691dc85d0ad65999dd5b49bd8627a4d4458`.
+- Normal Windows/Ubuntu/Fedora CI: [`31856222715`](https://github.com/cowebsLB/cowebs-developer-setup/actions/runs/31856222715).
+- Ubuntu 24.04 disposable matrix: [`31856228013`](https://github.com/cowebsLB/cowebs-developer-setup/actions/runs/31856228013).
+- Fedora 44 disposable VM matrix: [`31856229843`](https://github.com/cowebsLB/cowebs-developer-setup/actions/runs/31856229843).
+- Signed build, provenance, publication, and public re-verification: [`31856640404`](https://github.com/cowebsLB/cowebs-developer-setup/actions/runs/31856640404).
+- Post-publication documentation CI: [`31857144843`](https://github.com/cowebsLB/cowebs-developer-setup/actions/runs/31857144843).
+- Exact public artifact sizes, hashes, and verification commands: [v6.3.0-rc.1 release notes](releases/6.3.0-rc.1.md).
