@@ -6,6 +6,10 @@ All notable changes follow semantic versioning.
 
 ### Changed
 
+- Prepared the `v6.3.0-rc.1` cross-platform preview without changing the stable v6.2.0 Windows runtime or `latest` release.
+- Expanded guarded Ubuntu and Fedora validation to cover interruption/resume, partial inventory, forced offline recovery, fresh-login PATH, redacted state, cleanup, and repeat-run idempotency.
+- Added the evidence-tiered Ubuntu/Fedora/architecture support matrix and explicit stable-versus-preview boundaries.
+
 - Advanced the Linux roadmap from planning-only foundations to a source-preview controller and public CLI while preserving schema v2 and `master-setup.bat` as the released Windows runtime.
 - Completed live Fedora 43/44, Snapcraft, and Flathub validation over all 86 shared logical keys: 42 executable DNF/Snap/Flatpak providers and 44 explicit unsupported results without profile forks.
 - Mapped supported Linux Git, Git LFS, VS Code, and Node configuration intents and kept GitHub, AWS, Azure, account, license, and unsupported configuration explicit and manual.
@@ -31,6 +35,9 @@ All notable changes follow semantic versioning.
 
 ### Added
 
+- Added a tag-bound GitHub OIDC/Sigstore release-candidate workflow that signs every public file, generates GitHub provenance, verifies a draft, and repeats checksum, signature, bootstrap, and runtime checks after public publication.
+- Added deterministic signed-release finalization and tests for DEB/RPM inclusion, eight-artifact manifest coverage, checksum/SBOM coverage, and signature metadata pairing.
+
 - Added the shared `internal/application` service and public preview `cowebs` command family for `dev-setup`: plan, install, status, resume, doctor, update, completions, versioning, JSON output, and stable unsupported-package exit status.
 - Added one-shot Linux `sudo` partitioning, verified/atomic Ubuntu repository mutation, one APT/DNF metadata refresh, typed native Snap/Flatpak manager installation and activation, journal-bound resume, and redacted streaming execution events.
 - Added immutable release-manifest loading and bounded artifact downloads with HTTPS, size, and SHA-256 verification plus default-branch URL rejection.
@@ -49,6 +56,10 @@ All notable changes follow semantic versioning.
 
 ### Fixed
 
+- Fixed Linux bootstrap catalog discovery by searching the user XDG data directory and added an exact PATH instruction when `$HOME/.local/bin` is not active.
+- Forwarded Ctrl+C to the elevated Linux installer before cleanup so interruption state remains resumable and temporary canonical-plan files do not leak.
+- Rejected mutable `raw.githubusercontent.com` default-branch artifact URLs in addition to GitHub blob URLs.
+
 - Corrected Fedora Node.js to the cross-release `nodejs24` package and made OpenJDK 21 and scrcpy fail closed because official Fedora 43/44 repositories do not preserve those exact providers across the supported matrix.
 - Fixed fresh Linux plans treating missing Snap and Flatpak managers as blocking checks instead of installing their reviewed native packages and activating Snap through the typed elevated partition.
 - Fixed elevated Linux events being buffered until sudo exited; validated child events now persist as they stream so completed operations survive a later package failure and can be resumed.
@@ -62,12 +73,16 @@ All notable changes follow semantic versioning.
 
 ### Testing
 
+- Added release workflow YAML/actionlint validation, signed-release contract coverage, XDG discovery and interrupt-forwarding static contracts, and disposable failure-matrix assertions.
+
 - Validated every executable Fedora DNF identity on Fedora 43/44 x64 and arm64 repository metadata, all Snap IDs/architectures through the official Snapcraft API, and all Flathub IDs/architectures through the official remote.
 - Built, installed, and package-manager-verified the DEB in Ubuntu 24.04 and the RPM in Fedora 44, including root ownership and installed file modes.
 - Proved Fedora native manager provisioning, snapd activation, streamed failure journaling, and resume retry in a disposable systemd container; full VS Code Snap completion remains assigned to the VM/LXD gate because Docker Desktop lacks SquashFS LZO support.
 - Passed guarded Ubuntu run `31851004282` and Fedora VM run `31852156303`, including native-package installation, real core setup, canonical-plan equality, initiating-user state ownership, completed-state resume, and second-run idempotency.
 
 ### Security
+
+- Bound release-manifest signature metadata to immutable HTTPS bundles and exact tag-triggered GitHub workflow identities; Sigstore keyless signing avoids repository-held private signing keys.
 
 - Restricted real Linux machine work to canonical operations in one elevated child; user Flatpak and configuration work never crosses that privilege boundary.
 - Bounded repository-key downloads, required exact SHA-256 matches, constrained APT targets, used flushed atomic replacement, and prohibited credential-bearing or mutable default-branch URLs.

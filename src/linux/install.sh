@@ -31,3 +31,10 @@ install -m 0644 "$temporary_directory/catalog/package-catalog.v3.json" "$HOME/.l
 install -m 0644 "$temporary_directory/catalog/profile-catalog.v3.json" "$HOME/.local/share/cowebs/catalog/profile-catalog.v3.json"
 
 echo "Installed immutable COWebs CLI release $VERSION to $HOME/.local/bin/cowebs"
+case ":${PATH:-}:" in
+  *":$HOME/.local/bin:"*) ;;
+  *)
+    echo "Add $HOME/.local/bin to PATH, then start a new shell:"
+    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    ;;
+esac

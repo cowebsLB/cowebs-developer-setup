@@ -50,6 +50,10 @@ try {
     $unsupported = Invoke-Native -FilePath $binary -Arguments @('plan', 'dev-setup', '--packages', (Join-Path $catalog 'package-catalog.v3.json'), '--profiles', (Join-Path $catalog 'profile-catalog.v3.json'), '--profile', 'backend', '--platform', 'fedora', '--architecture', 'x64', '--json')
     Assert-True ($unsupported.ExitCode -eq 3 -and $unsupported.Stderr -match 'docker, postgresql') 'Structured unsupported-package exit contract changed.'
 
+    $mainSource = Get-Content -LiteralPath (Join-Path $projectRoot 'cmd\cowebs\main.go') -Raw -Encoding UTF8
+    Assert-True ($mainSource -match 'XDG_DATA_HOME' -and $mainSource -match '\.local.*share') 'Unix bootstrap catalog discovery contract is missing.'
+    Assert-True ($mainSource -match 'signal\.Notify\(interrupts, os\.Interrupt\)') 'Linux interrupt forwarding and cleanup contract is missing.'
+
     Write-Host 'PASS: Public cowebs CLI grammar, dispatch, completions, deterministic planning, and exit contracts.' -ForegroundColor Green
 } finally {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }

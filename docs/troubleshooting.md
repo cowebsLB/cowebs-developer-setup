@@ -92,3 +92,19 @@ Real execution requires the plan's Ubuntu/Fedora target to match `/etc/os-releas
 ## Update or bootstrap integrity validation fails
 
 Do not bypass URL, size, or SHA-256 validation. The manifest and artifact URLs must use immutable HTTPS release paths, and downloaded bytes must exactly match the declared size and digest. Default-branch URLs are deliberately rejected.
+
+## Linux installation was interrupted
+
+Ctrl+C is forwarded to the elevated installer and the canonical temporary plan is cleaned up. The initiating user's journal preserves completed operations. Run `cowebs status dev-setup`, then `cowebs resume dev-setup --non-interactive` after the package manager has finished any native recovery it requests. Do not delete or edit the journal to force progress.
+
+## Linux installation failed while offline
+
+The failed operation is recorded without raw package-manager output or credentials. Restore network access, run `cowebs status dev-setup`, and then use `cowebs resume dev-setup --non-interactive`. Already-completed operations are skipped after the canonical plan and catalog digest are revalidated.
+
+## `cowebs` is not found after the Unix bootstrap
+
+The bootstrap installs the executable in `$HOME/.local/bin`. Start a new login shell or add it for the current session with `export PATH="$HOME/.local/bin:$PATH"`. Native DEB/RPM packages install `/usr/bin/cowebs` and do not need this user PATH addition.
+
+## Verify a release signature
+
+Download the release file and its matching `.sigstore.json` bundle, then run `cosign verify-blob --bundle FILE.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/cowebsLB/cowebs-developer-setup/.github/workflows/release-cross-platform-preview.yml@refs/tags/vVERSION FILE`. The identity must match the exact release tag. SHA-256 checksums remain mandatory; signature verification does not replace them.

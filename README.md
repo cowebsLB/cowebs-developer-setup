@@ -68,7 +68,7 @@ Cross-platform preview artifacts can be built locally without changing the relea
 ./scripts/build-cross-platform.ps1 -Version 6.3.0-dev -OutputDirectory ./dist/cross-platform
 ```
 
-The build emits Windows and Linux binaries, deterministic catalogs, an immutable checksum-pinned Unix bootstrap, a release manifest, SHA-256 checksums, an SPDX SBOM, and generated Winget metadata. Debian and RPM build definitions are checked in. These artifacts have not been published or signed, and real Linux installation has not yet passed the disposable-environment release gate. Schema v2 and the released Windows v6.2 engine remain authoritative; `master-setup.bat` is unchanged. See the [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and [ADRs](docs/adr/README.md).
+The build emits Windows and Linux binaries, deterministic catalogs, an immutable checksum-pinned Unix bootstrap, a release manifest, SHA-256 checksums, an SPDX SBOM, generated Winget metadata, and x64 DEB/RPM candidates. Guarded Ubuntu 24.04 and Fedora 44 core native-package installations have passed; the expanded failure/interruption matrix and signed v6.3.0-rc.1 publication are the current gates. Schema v2 and the released Windows v6.2 engine remain authoritative; `master-setup.bat` is unchanged. See the [support matrix](docs/support-matrix.md), [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and [ADRs](docs/adr/README.md).
 
 For unattended v6.2 runs, pass `--non-interactive` to suppress per-package confirmation. Interactive runs check whether a package is already installed before asking for confirmation, and accept `>skip`, `skip`, or `s` to omit a needed package.
 

@@ -55,4 +55,8 @@ go build -o ./build/cowebs ./cmd/cowebs
 ./build/cowebs plan dev-setup --packages ./build/catalog/package-catalog.v3.json --profiles ./build/catalog/profile-catalog.v3.json --profile game --essentials-only --platform ubuntu --json
 ```
 
-Real Linux installation is not supported on an active workstation. It must run through `scripts/validate-linux-disposable.sh` with `COWEBS_DISPOSABLE=1` inside a disposable Ubuntu/Fedora VM or explicitly authorized ephemeral CI runner. The generated Unix bootstrap and native package definitions are release candidates only; no Linux artifacts are published or signed. The released public execution path remains Windows v6.2 through `master-setup.bat`.
+Real Linux installation is not supported on an active workstation during the release-candidate phase. It must first run through `scripts/validate-linux-disposable.sh` with `COWEBS_DISPOSABLE=1` inside a disposable Ubuntu/Fedora VM or explicitly authorized ephemeral CI runner. The guarded matrix covers partial inventory, installed-package skips, isolated-network failure and resume, active interruption and resume, initiating-user state ownership, redacted structured journals, login-shell PATH discovery, temporary-plan cleanup, and a second idempotent run.
+
+The v6.3.0-rc.1 Unix bootstrap installs the binary under `~/.local/bin` and catalogs under `~/.local/share/cowebs/catalog`. The CLI resolves that XDG-compatible catalog location. If `~/.local/bin` is absent from `PATH`, the bootstrap prints the exact export command; start a new login shell after adding it. Native DEB/RPM packages install the CLI under `/usr/bin` and catalogs under `/usr/share/cowebs/catalog`.
+
+The released stable execution path remains Windows v6.2 through `master-setup.bat`. Consult the [support matrix](support-matrix.md) before using preview artifacts.

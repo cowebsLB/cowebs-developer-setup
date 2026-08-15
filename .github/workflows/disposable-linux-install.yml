@@ -39,10 +39,12 @@ jobs:
           sudo dpkg -i ./dist/linux-packages/cowebs_6.3.0-dev_amd64.deb
           dpkg-query -W -f='${Status}\n' cowebs
           test "$(stat -c '%U:%G' /usr/bin/cowebs)" = 'root:root'
-      - name: Execute Ubuntu real-install, resume, parity, and idempotency gates
+      - name: Execute Ubuntu failure, interruption, resume, PATH, and cleanup matrix
         env:
           COWEBS_DISPOSABLE: '1'
-        run: bash ./scripts/validate-linux-disposable.sh ubuntu real /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json
+        run: |
+          bash ./scripts/validate-linux-disposable.sh ubuntu matrix /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json
+          test -z "$(find /tmp -maxdepth 1 -type d -name 'cowebs-disposable.*' -print -quit)"
 
   fedora-real-install:
     if: inputs.confirm_real_install == 'RUN-IN-DISPOSABLE-RUNNER' && inputs.platform == 'fedora'
@@ -79,7 +81,7 @@ jobs:
             sleep 2
           done
           test "$guest_ready" = 1
-          lxc exec cowebs-fedora44 -- dnf -y install rpm-build sudo
+          lxc exec cowebs-fedora44 -- dnf -y install rpm-build sudo python3 util-linux
           lxc exec cowebs-fedora44 -- mkdir -p /workspace/scripts /workspace/packaging/rpm /workspace/build/bundle/catalog /workspace/dist/linux-packages
           lxc file push ./scripts/build-linux-packages.sh cowebs-fedora44/workspace/scripts/build-linux-packages.sh
           lxc file push ./scripts/validate-linux-disposable.sh cowebs-fedora44/workspace/scripts/validate-linux-disposable.sh
@@ -95,13 +97,14 @@ jobs:
         run: |
           lxc exec cowebs-fedora44 -- useradd --create-home --groups wheel cowebs
           lxc exec cowebs-fedora44 -- bash -lc "printf '%s\n' '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/cowebs-wheel && chmod 0440 /etc/sudoers.d/cowebs-wheel"
-      - name: Execute Fedora real-install, resume, parity, and idempotency gates
+      - name: Execute Fedora failure, interruption, resume, PATH, and cleanup matrix
         run: |
-          if ! lxc exec cowebs-fedora44 -- sudo -u cowebs -H env CI=true COWEBS_DISPOSABLE=1 bash /workspace/scripts/validate-linux-disposable.sh fedora real /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json; then
+          if ! lxc exec cowebs-fedora44 -- sudo -u cowebs -H env CI=true COWEBS_DISPOSABLE=1 bash /workspace/scripts/validate-linux-disposable.sh fedora matrix /usr/bin/cowebs /usr/share/cowebs/catalog/package-catalog.v3.json /usr/share/cowebs/catalog/profile-catalog.v3.json; then
             lxc exec cowebs-fedora44 -- snap changes || true
             lxc exec cowebs-fedora44 -- journalctl --unit=snapd --no-pager --lines=100 || true
             exit 1
           fi
+          lxc exec cowebs-fedora44 -- bash -lc 'test -z "$(find /tmp -maxdepth 1 -type d -name "cowebs-disposable.*" -print -quit)"'
       - name: Remove disposable Fedora virtual machine
         if: always()
         run: lxc delete --force cowebs-fedora44 || true

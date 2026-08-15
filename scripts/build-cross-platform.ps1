@@ -80,7 +80,7 @@ try {
             & tar -czf $archive -C $bundle .
             if ($LASTEXITCODE -ne 0) { throw "tar failed for Linux $($target.Architecture)." }
         }
-        $minimumEnvironment = if ($target.Platform -eq 'windows') { 'Windows 10 or Windows Server 2016 and later' } else { 'Ubuntu 24.04 or Fedora 43 and later' }
+        $minimumEnvironment = if ($target.Platform -eq 'windows') { 'Windows 10 or Windows Server 2016 and later; Go runtime preview only' } else { 'Ubuntu 24.04 or Fedora 43-44; see support matrix for architecture evidence' }
         $artifacts.Add((Get-ArtifactRecord -Path $archive -Platform $target.Platform -Architecture $target.Architecture -MinimumEnvironment $minimumEnvironment))
     }
 

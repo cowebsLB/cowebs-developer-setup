@@ -100,9 +100,9 @@
 - [x] Build, install, and package-manager-verify the unsigned DEB on Ubuntu 24.04 and RPM on Fedora 44; verify root ownership and installed modes.
 - [x] Prove Fedora DNF installation, native snapd provisioning/activation, user-owned journals, persisted failure state, and resume retry inside a disposable systemd container; do not count the host-kernel SquashFS LZO limitation as full Snap evidence.
 - [x] Run core real installations only in disposable Ubuntu and Fedora environments: guarded Ubuntu run `31851004282` and Fedora VM run `31852156303` passed.
-- [ ] Complete the remaining partially provisioned, skipped-package, forced network/source failure, and active interruption scenarios; fresh core installation, completed-state resume, already-installed detection, and second-run idempotency passed on Ubuntu and Fedora.
-- [ ] Verify user-versus-machine ownership, PATH/session behavior, logs, cleanup, and absence of credential or raw installer-output persistence.
-- [ ] Record the supported distribution/version/architecture matrix from evidence gathered during the release candidate.
+- [ ] Complete the expanded disposable `matrix` workflow for partially provisioned/skipped packages, forced offline failure/recovery, and active interruption/resume on both Ubuntu and Fedora; the harness is implemented and awaiting green remote evidence.
+- [ ] Verify user-versus-machine ownership, fresh-login PATH, JSON-only/redacted journals, temporary-plan cleanup, and disposable-environment cleanup on both targets; assertions are implemented and awaiting green remote evidence.
+- [x] Define the evidence-based support matrix in `docs/support-matrix.md`; update its release-candidate run references after the expanded matrix completes.
 - [ ] Publish a Linux release only after public asset hashes, downloaded bootstrap dry-runs, CI, and disposable-environment installation evidence all agree.
 - [ ] Verify that installation through native packages, the Unix bootstrap, the terminal CLI, and the optional GUI resolves the same canonical `dev-setup` plan for identical inputs.
 
@@ -122,7 +122,7 @@
 - [ ] Implement shared configuration intents through platform-specific handlers.
 - [x] Add resumable setup state for interrupted installations.
 - [x] Add guarded Ubuntu and Fedora disposable validation workflows with native-package installation, canonical-plan parity, resume, ownership, and idempotency gates; remote Ubuntu `31851004282` and Fedora VM `31852156303` runs passed.
-- [ ] Add release signing and publish verified checksums; release-manifest verification and SBOM generation are implemented.
+- [ ] Publish keyless Sigstore bundles, GitHub provenance, and publicly reverified checksums for the release candidate; the tag-bound pipeline and local contracts are implemented.
 - [ ] Begin the macOS Homebrew adapter and catalog only after the Linux provider/compiler pattern is proven reusable.
 
 ## Definition of done
@@ -144,4 +144,4 @@
 - Public artifacts reproduce their recorded hashes and complete downloaded dry-runs.
 - No unresolved high-severity correctness, security, recovery, or release-integrity finding remains.
 
-The remaining critical path is failure/recovery evidence and signed publication rather than core source implementation: complete partial/skipped/network-failure/interruption coverage, verify PATH/session behavior and cleanup, configure and execute the signing design, and only then publish and re-download assets. Fedora primary-source validation, local DEB/RPM verification, and guarded Ubuntu/Fedora core real-install/resume/idempotency runs are complete. The optional native GUI, public package-repository submissions, macOS support, and Windows Go runtime cutover remain separate future work.
+The remaining critical path is execution evidence and signed publication rather than source design: obtain green expanded-matrix runs on Ubuntu and Fedora, then tag the exact passing commit and let the release-candidate workflow sign, attest, publish, and publicly re-download every asset. Fedora primary-source validation, local DEB/RPM verification, guarded core real-install evidence, the support matrix, and the signing/public-verification pipeline are implemented. The optional native GUI, public package-repository submissions, macOS support, and Windows Go runtime cutover remain separate future work.

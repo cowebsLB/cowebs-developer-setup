@@ -47,3 +47,19 @@ func TestManifestValidation(t *testing.T) {
 		t.Fatal("expected non-HTTPS rejection")
 	}
 }
+
+func TestManifestSignatureMetadataMustBeCompleteAndImmutable(t *testing.T) {
+	manifest := &Manifest{SchemaVersion: 1, Version: "6.3.0-rc.1", SourceCommit: "0123456789012345678901234567890123456789", PublishedAt: time.Now().UTC().Format(time.RFC3339), Artifacts: []Artifact{{Name: "cowebs", Platform: "linux", Architecture: "x64", URL: "https://github.com/cowebsLB/cowebs-developer-setup/releases/download/v6.3.0-rc.1/cowebs", SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", SizeBytes: 1, MinimumEnvironment: "Ubuntu 24.04", Signature: "https://github.com/cowebsLB/cowebs-developer-setup/releases/download/v6.3.0-rc.1/cowebs.sigstore.json", CertificateIdentity: "https://github.com/cowebsLB/cowebs-developer-setup/.github/workflows/release-cross-platform-preview.yml@refs/tags/v6.3.0-rc.1"}}}
+	if err := ValidateManifest(manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.Artifacts[0].CertificateIdentity = ""
+	if err := ValidateManifest(manifest); err == nil {
+		t.Fatal("expected incomplete signature metadata rejection")
+	}
+	manifest.Artifacts[0].CertificateIdentity = "https://github.com/cowebsLB/cowebs-developer-setup/.github/workflows/release-cross-platform-preview.yml@refs/tags/v6.3.0-rc.1"
+	manifest.Artifacts[0].Signature = "https://raw.githubusercontent.com/cowebsLB/cowebs-developer-setup/main/cowebs.sigstore.json"
+	if err := ValidateManifest(manifest); err == nil {
+		t.Fatal("expected mutable signature URL rejection")
+	}
+}

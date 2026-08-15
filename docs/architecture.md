@@ -33,7 +33,7 @@ Windows estimates are catalog-driven. The manifest supplies conservative fallbac
 
 ## Release layer
 
-`scripts/build-release.ps1` continues to produce the released Windows v6.2 runtime ZIP. `scripts/build-cross-platform.ps1` separately builds the source-preview `cowebs` binaries, deterministic catalogs, checksum-pinned Unix bootstrap, release manifest, SHA-256 list, SPDX SBOM, and Winget metadata. Debian and RPM definitions are built independently on Linux by `scripts/build-linux-packages.sh`; disposable Ubuntu 24.04 and Fedora 44 package-manager verification has passed for the unsigned preview formats. Preview packaging does not change the production BAT payload.
+`scripts/build-release.ps1` continues to produce the released Windows v6.2 runtime ZIP. `scripts/build-cross-platform.ps1` separately builds the preview `cowebs` binaries, deterministic catalogs, checksum-pinned Unix bootstrap, release manifest, SHA-256 list, SPDX SBOM, and Winget metadata. Debian and RPM definitions are built independently on Linux by `scripts/build-linux-packages.sh`. `scripts/finalize-cross-platform-release.ps1` incorporates both native packages, regenerates checksum/SBOM coverage, and binds every manifest record to a tag-specific Sigstore bundle and GitHub Actions certificate identity. The release-candidate workflow signs every published file keylessly through GitHub OIDC, generates GitHub artifact provenance, verifies the draft privately, and then repeats byte, signature, bootstrap, and runtime checks through unauthenticated public downloads. Preview packaging does not change the production BAT payload.
 
 ## Architecture modernization implementation
 
@@ -56,7 +56,7 @@ The v6.2 source tree includes a development redesign foundation with versioned c
 - `internal/doctor` executes diagnostic checks across OS compatibility, package manager availability, workspace directories, and catalog integrity.
 - `cmd/cowebs` exposes the public preview command family under the stable `dev-setup` product identifier; `cmd/cowebs-setup` remains the development compatibility entry point.
 
-The planner retains exact black-box parity with the production PowerShell planner. Tests compile all 86 Ubuntu and Fedora classifications, prove deterministic core and bounded plans, validate typed APT/DNF/Snap/Flatpak prerequisites, exercise verified atomic repository writes with injected downloads, test privilege partitioning and configuration handling, and verify the public CLI and cross-platform release outputs. Real installation evidence is still pending in disposable Ubuntu and Fedora environments, so schema v2 remains authoritative for the public Windows v6.2 runtime.
+The planner retains exact black-box parity with the production PowerShell planner. Tests compile all 86 Ubuntu and Fedora classifications, prove deterministic core and bounded plans, validate typed APT/DNF/Snap/Flatpak prerequisites, exercise verified atomic repository writes with injected downloads, test privilege partitioning and configuration handling, and verify the public CLI and signed cross-platform release outputs. Core installation evidence has passed on disposable Ubuntu 24.04 and Fedora 44. The expanded failure/interruption/session matrix and public signed-release workflow remain the release-candidate gates, and schema v2 remains authoritative for the public Windows v6.2 runtime.
 
 ## Target architecture
 

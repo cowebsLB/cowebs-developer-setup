@@ -98,6 +98,14 @@ func ValidateManifest(manifest *Manifest) error {
 		if err := validateImmutableHTTPS(artifact.URL); err != nil || !digestPattern.MatchString(artifact.SHA256) || artifact.SizeBytes < 1 || strings.TrimSpace(artifact.MinimumEnvironment) == "" {
 			return fmt.Errorf("release artifact %q has invalid integrity metadata", artifact.Name)
 		}
+		if (artifact.Signature == "") != (artifact.CertificateIdentity == "") {
+			return fmt.Errorf("release artifact %q has incomplete signature metadata", artifact.Name)
+		}
+		if artifact.Signature != "" {
+			if err := validateImmutableHTTPS(artifact.Signature); err != nil || !strings.Contains(artifact.CertificateIdentity, "/.github/workflows/") || !strings.Contains(artifact.CertificateIdentity, "@refs/tags/v") {
+				return fmt.Errorf("release artifact %q has invalid signature metadata", artifact.Name)
+			}
+		}
 	}
 	return nil
 }
@@ -179,8 +187,15 @@ func validateImmutableHTTPS(value string) error {
 		return err
 	}
 	lower := strings.ToLower(value)
-	for _, marker := range []string{"/refs/heads/", "/raw/main/", "/raw/master/", "/archive/refs/heads/", "/default-branch/"} {
+	for _, marker := range []string{"/refs/heads/", "/raw/main/", "/raw/master/", "/blob/main/", "/blob/master/", "/archive/refs/heads/", "/default-branch/"} {
 		if strings.Contains(lower, marker) {
+			return fmt.Errorf("mutable default-branch release URL is prohibited")
+		}
+	}
+	parsed, _ := url.Parse(value)
+	if strings.EqualFold(parsed.Hostname(), "raw.githubusercontent.com") {
+		parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+		if len(parts) >= 3 && (strings.EqualFold(parts[2], "main") || strings.EqualFold(parts[2], "master")) {
 			return fmt.Errorf("mutable default-branch release URL is prohibited")
 		}
 	}

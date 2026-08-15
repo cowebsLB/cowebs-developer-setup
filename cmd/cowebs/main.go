@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -305,6 +306,18 @@ func runElevatedPartition(service *application.Service, plan *planner.Plan, stat
 	if err := command.Start(); err != nil {
 		return fmt.Errorf("single privileged handoff failed: %w", err)
 	}
+	interrupts := make(chan os.Signal, 1)
+	brokerDone := make(chan struct{})
+	signal.Notify(interrupts, os.Interrupt)
+	defer signal.Stop(interrupts)
+	defer close(brokerDone)
+	go func() {
+		select {
+		case interrupt := <-interrupts:
+			_ = command.Process.Signal(interrupt)
+		case <-brokerDone:
+		}
+	}()
 	if err := persistChildEventStream(output, executionJournal, state, plan); err != nil {
 		_ = command.Process.Kill()
 		_ = command.Wait()
@@ -524,6 +537,13 @@ func resolveCatalogPaths(packages, profiles string) (string, string, error) {
 	if _, err := os.Stat(packages); err == nil {
 		return packages, profiles, nil
 	}
+	if dataHome, err := linuxUserDataHome(); err == nil && dataHome != "" {
+		candidatePackages := filepath.Join(dataHome, "cowebs", "catalog", "package-catalog.v3.json")
+		candidateProfiles := filepath.Join(dataHome, "cowebs", "catalog", "profile-catalog.v3.json")
+		if _, err := os.Stat(candidatePackages); err == nil {
+			return candidatePackages, candidateProfiles, nil
+		}
+	}
 	for _, sharedDirectory := range []string{"/usr/local/share/cowebs/catalog", "/usr/share/cowebs/catalog"} {
 		candidatePackages := filepath.Join(sharedDirectory, "package-catalog.v3.json")
 		candidateProfiles := filepath.Join(sharedDirectory, "profile-catalog.v3.json")
@@ -532,6 +552,23 @@ func resolveCatalogPaths(packages, profiles string) (string, string, error) {
 		}
 	}
 	return "", "", fmt.Errorf("bundled catalogs were not found; provide --packages and --profiles")
+}
+
+func linuxUserDataHome() (string, error) {
+	if runtime.GOOS != "linux" {
+		return "", nil
+	}
+	if configured := strings.TrimSpace(os.Getenv("XDG_DATA_HOME")); configured != "" {
+		if !filepath.IsAbs(configured) {
+			return "", fmt.Errorf("XDG_DATA_HOME must be absolute")
+		}
+		return configured, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".local", "share"), nil
 }
 
 func defaultJournalPath(planID string) (string, error) {

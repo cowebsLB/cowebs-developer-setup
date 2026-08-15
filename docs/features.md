@@ -32,8 +32,8 @@
 |---|---|---|
 | Windows | Implemented | Winget |
 | macOS | Planned | Homebrew |
-| Ubuntu | Source-preview planning and least-privilege execution; real-install gate pending | Eighty-six classifications: fifty-four executable providers and thirty-two explicit unsupported results |
-| Fedora | Source-preview planning and least-privilege execution; full VM install gate pending | Eighty-six classifications: forty-two executable providers and forty-four explicit unsupported results |
+| Ubuntu 24.04 x64 | Preview planning and least-privilege execution; core disposable install passed | Eighty-six classifications: fifty-four executable providers and thirty-two explicit unsupported results |
+| Fedora 44 x64 | Preview planning and least-privilege execution; core disposable VM install passed | Eighty-six classifications: forty-two executable providers and forty-four explicit unsupported results |
 
 ## Development architecture modernization (source-only in v6.2.0)
 
@@ -57,6 +57,8 @@
 - System diagnostic engine (`internal/doctor`) for platform, package manager, workspace directory, and catalog integrity checks
 - `cowebs-setup` CLI subcommands (`plan`, `broker`, `status`, `resume`, `doctor`) with `--json` output format support
 - Public preview `cowebs` command family for `dev-setup`, including install, plan, status, resume, doctor, update, version, completions, and stable exit contracts
-- Cross-platform binary/archive builder, checksum-pinned Unix bootstrap, release manifest, SHA-256 list, SPDX SBOM, Winget metadata, and Debian/RPM package definitions
+- Cross-platform binary/archive builder, checksum-pinned Unix bootstrap, signed release manifest, SHA-256 list, SPDX SBOM, Winget metadata, and Debian/RPM package definitions
+- Tag-bound keyless Sigstore bundles and GitHub artifact provenance with draft and unauthenticated public-download verification
+- Disposable Linux failure matrix covering interruption/resume, partial inventory, forced offline failure/recovery, fresh-login PATH, ownership, redaction, cleanup, and repeat-run idempotency
 - Exact black-box parity with the PowerShell planner across every profile and selection mode
 - The Go binary and schema-v3 catalogs remain excluded from the v6.2 runtime bundle pending an approved cutover

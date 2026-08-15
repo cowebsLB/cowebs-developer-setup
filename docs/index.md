@@ -13,4 +13,6 @@
 - [Security](Security.md)
 - [Testing](Testing.md)
 - [Deployment](Deployment.md)
+- [Support and validation matrix](support-matrix.md)
+- [Release notes](releases/6.3.0-rc.1.md)
 - [Worklogs](worklogs/)

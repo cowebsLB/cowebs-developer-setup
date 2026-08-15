@@ -1,0 +1,131 @@
+name: Release signed cross-platform preview
+
+on:
+  push:
+    tags:
+      - 'v*-rc.*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release-preview:
+    if: github.repository == 'cowebsLB/cowebs-developer-setup'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Validate immutable release identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          notes="docs/releases/$version.md"
+          test -f "$notes"
+          identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release-cross-platform-preview.yml@refs/tags/${GITHUB_REF_NAME}"
+          base_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "notes=$notes" >> "$GITHUB_OUTPUT"
+          echo "certificate_identity=$identity" >> "$GITHUB_OUTPUT"
+          echo "base_url=$base_url" >> "$GITHUB_OUTPUT"
+      - name: Test release source
+        run: |
+          go test -count=1 ./...
+          go vet ./...
+          pwsh ./tests/test-architecture-foundation.ps1
+          pwsh ./tests/test-ubuntu-planning.ps1
+          pwsh ./tests/test-fedora-planning.ps1
+          pwsh ./tests/test-public-cli.ps1
+          pwsh ./tests/test-signed-release.ps1
+      - name: Build archives and native packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          version='${{ steps.identity.outputs.version }}'
+          output="$GITHUB_WORKSPACE/dist/release"
+          pwsh ./scripts/build-cross-platform.ps1 -Version "$version" -OutputDirectory "$output" -ReleaseBaseUrl '${{ steps.identity.outputs.base_url }}' -SourceCommit "$GITHUB_SHA"
+          mkdir -p ./build/release-bundle
+          tar -xzf "$output/cowebs-$version-linux-x64.tar.gz" -C ./build/release-bundle
+          bash ./scripts/build-linux-packages.sh "$version" x64 ./build/release-bundle all
+          deb="$(find ./dist/linux-packages -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          rpm="$(find ./dist/linux-packages -maxdepth 1 -type f -name '*.rpm' -print -quit)"
+          test -n "$deb" && test -n "$rpm"
+          pwsh ./scripts/finalize-cross-platform-release.ps1 -Version "$version" -OutputDirectory "$output" -DebianPackage "$deb" -RpmPackage "$rpm" -ReleaseBaseUrl '${{ steps.identity.outputs.base_url }}' -CertificateIdentity '${{ steps.identity.outputs.certificate_identity }}'
+          (cd "$output" && sha256sum --check SHA256SUMS)
+          dpkg-deb --info "$output"/*.deb >/dev/null
+          rpm -qip "$output"/*.rpm >/dev/null
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.0.6
+      - name: Sign and verify every release payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity='${{ steps.identity.outputs.certificate_identity }}'
+          issuer='https://token.actions.githubusercontent.com'
+          while IFS= read -r file; do
+            cosign sign-blob --yes --bundle "$file.sigstore.json" "$file"
+            cosign verify-blob --bundle "$file.sigstore.json" --certificate-identity "$identity" --certificate-oidc-issuer "$issuer" "$file"
+          done < <(find ./dist/release -maxdepth 1 -type f ! -name '*.sigstore.json' -print | sort)
+      - name: Attest checksummed payload provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: ./dist/release/SHA256SUMS
+      - name: Attest manifest provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ./dist/release/release-manifest-v1.json
+      - name: Create and authenticate a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t assets < <(find ./dist/release -maxdepth 1 -type f -print | sort)
+          gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --draft --prerelease --title "COWebs.lb Developer Setup $GITHUB_REF_NAME" --notes-file '${{ steps.identity.outputs.notes }}'
+          draft_download="$(mktemp -d)"
+          gh release download "$GITHUB_REF_NAME" --dir "$draft_download"
+          for source in "${assets[@]}"; do
+            cmp "$source" "$draft_download/$(basename "$source")"
+          done
+          while read -r digest name; do
+            gh attestation verify "$draft_download/$name" --repo "$GITHUB_REPOSITORY"
+          done < ./dist/release/SHA256SUMS
+          gh attestation verify "$draft_download/release-manifest-v1.json" --repo "$GITHUB_REPOSITORY"
+      - name: Publish prerelease and verify public downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease
+          public_download="$(mktemp -d)"
+          while IFS= read -r source; do
+            name="$(basename "$source")"
+            curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 --output "$public_download/$name" '${{ steps.identity.outputs.base_url }}'/$name
+            cmp "$source" "$public_download/$name"
+          done < <(find ./dist/release -maxdepth 1 -type f -print | sort)
+          identity='${{ steps.identity.outputs.certificate_identity }}'
+          issuer='https://token.actions.githubusercontent.com'
+          while IFS= read -r payload; do
+            cosign verify-blob --bundle "$public_download/$(basename "$payload").sigstore.json" --certificate-identity "$identity" --certificate-oidc-issuer "$issuer" "$public_download/$(basename "$payload")"
+          done < <(find ./dist/release -maxdepth 1 -type f ! -name '*.sigstore.json' -print | sort)
+          smoke_home="$(mktemp -d)"
+          HOME="$smoke_home" PATH="$smoke_home/.local/bin:$PATH" sh "$public_download/cowebs-install-${{ steps.identity.outputs.version }}.sh"
+          HOME="$smoke_home" PATH="$smoke_home/.local/bin:$PATH" cowebs --version | grep -F 'cowebs ${{ steps.identity.outputs.version }}'
+          HOME="$smoke_home" PATH="$smoke_home/.local/bin:$PATH" cowebs plan dev-setup --profile game --essentials-only --platform ubuntu --architecture x64 --json >/dev/null

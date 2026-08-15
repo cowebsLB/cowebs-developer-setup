@@ -31,5 +31,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & (Join-Path $testRoot 'test-cross-platform-release.ps1')
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+& (Join-Path $testRoot 'test-signed-release.ps1')
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Write-Host 'PASS: complete COWebs.lb developer setup test suite.' -ForegroundColor Green
 exit 0

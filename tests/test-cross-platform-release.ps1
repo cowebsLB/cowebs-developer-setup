@@ -20,6 +20,7 @@ try {
     $bootstrap = Get-Content -LiteralPath (Join-Path $tempRoot 'cowebs-install-6.3.0-dev.sh') -Raw -Encoding UTF8
     Assert-True ($bootstrap -notmatch '@(?:VERSION|BASE_URL|LINUX_)') 'Unix bootstrap still contains unresolved build tokens.'
     Assert-True ($bootstrap -match 'sha256sum' -and $bootstrap -match 'releases/download/v6\.3\.0-dev') 'Unix bootstrap must verify pinned release assets.'
+    Assert-True ($bootstrap -match '\.local/bin' -and $bootstrap -match 'Add .* to PATH') 'Unix bootstrap must explain the user-local PATH/session contract.'
     Assert-True ($bootstrap -notmatch '(?i)(raw/main|refs/heads|git clone)') 'Unix bootstrap must not execute mutable default-branch code.'
     $windowsExtract = Join-Path $tempRoot 'windows-extract'
     Expand-Archive -LiteralPath (Join-Path $tempRoot 'cowebs-6.3.0-dev-windows-x64.zip') -DestinationPath $windowsExtract
@@ -32,6 +33,8 @@ try {
     $wingetInstaller = Get-Content -LiteralPath (Join-Path $result.Winget 'COWebs.CLI.installer.yaml') -Raw -Encoding UTF8
     Assert-True ($wingetInstaller -notmatch '@(?:VERSION|WINDOWS_)' -and $wingetInstaller -match 'releases/download/v6\.3\.0-dev') 'Generated Winget manifest is not pinned to the verified Windows release artifact.'
     Assert-True ((Get-Content -LiteralPath (Join-Path $projectRoot 'scripts\validate-linux-disposable.sh') -Raw) -match 'COWEBS_DISPOSABLE') 'Disposable validation guard is missing.'
+    $disposableHarness = Get-Content -LiteralPath (Join-Path $projectRoot 'scripts\validate-linux-disposable.sh') -Raw -Encoding UTF8
+    Assert-True ($disposableHarness -match 'unshare --net' -and $disposableHarness -match 'kill -INT' -and $disposableHarness -match 'assert_journal_redacted') 'Disposable failure/interruption/redaction matrix is incomplete.'
     Write-Host 'PASS: Cross-platform binaries, immutable bootstrap, manifest, checksums, SBOM, and native packaging contracts.' -ForegroundColor Green
 } finally {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }

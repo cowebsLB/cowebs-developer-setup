@@ -25,8 +25,8 @@
           "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
           "sizeBytes": { "type": "integer", "minimum": 1 },
           "minimumEnvironment": { "type": "string", "minLength": 1 },
-          "signature": { "type": "string", "minLength": 1 },
-          "certificateIdentity": { "type": "string", "minLength": 1 }
+          "signature": { "type": "string", "format": "uri", "pattern": "^https://" },
+          "certificateIdentity": { "type": "string", "format": "uri", "pattern": "^https://github\\.com/.+/\\.github/workflows/.+@refs/tags/v" }
         }
       }
     }
