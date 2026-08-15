@@ -144,14 +144,32 @@ wait_for_native_manager_idle() {
     return
   fi
   for _ in {1..180}; do
-    if ! snap changes 2>/dev/null | awk 'NR > 1 && $2 == "Doing" { found = 1 } END { exit !found }'; then
-      return
+    local changes
+    if changes="$(snap changes 2>/dev/null)"; then
+      if ! printf '%s\n' "$changes" | awk 'NR > 1 && $2 == "Doing" { found = 1 } END { exit !found }'; then
+        return 0
+      fi
     fi
     sleep 1
   done
   echo 'Snap did not finish native recovery within three minutes' >&2
   snap changes >&2 || true
-  exit 1
+  return 1
+}
+
+resume_after_native_recovery() {
+  local root="$1"
+  local deadline=$((SECONDS + 300))
+  while (( SECONDS < deadline )); do
+    wait_for_native_manager_idle || return 1
+    if resume_install "$root"; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo 'resume did not succeed within the five-minute native-recovery bound' >&2
+  snap changes >&2 || true
+  return 1
 }
 
 run_core_story() {
@@ -228,8 +246,7 @@ run_matrix_story() {
   assert_owned_files "$interrupted"
   assert_journal_redacted "$interrupted/session.jsonl"
   assert_no_temporary_plan_leak
-  wait_for_native_manager_idle
-  resume_install "$interrupted"
+  resume_after_native_recovery "$interrupted"
   cmp "$interrupted/expected-plan.json" "$interrupted/canonical-plan.json"
   assert_complete_state "$interrupted/state.json" true
   assert_journal_redacted "$interrupted/session.jsonl"
