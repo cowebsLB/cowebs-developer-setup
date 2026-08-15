@@ -297,6 +297,7 @@ func runElevatedPartition(service *application.Service, plan *planner.Plan, stat
 		arguments = append(arguments, "--terminal", operationID)
 	}
 	command := exec.Command("sudo", arguments...)
+	prepareInterruptibleChild(command)
 	output, err := command.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("open privileged broker event stream: %w", err)
@@ -314,7 +315,7 @@ func runElevatedPartition(service *application.Service, plan *planner.Plan, stat
 	go func() {
 		select {
 		case interrupt := <-interrupts:
-			_ = command.Process.Signal(interrupt)
+			interruptChild(command, interrupt, brokerDone)
 		case <-brokerDone:
 		}
 	}()

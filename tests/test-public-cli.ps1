@@ -52,7 +52,8 @@ try {
 
     $mainSource = Get-Content -LiteralPath (Join-Path $projectRoot 'cmd\cowebs\main.go') -Raw -Encoding UTF8
     Assert-True ($mainSource -match 'XDG_DATA_HOME' -and $mainSource -match '\.local.*share') 'Unix bootstrap catalog discovery contract is missing.'
-    Assert-True ($mainSource -match 'signal\.Notify\(interrupts, os\.Interrupt\)') 'Linux interrupt forwarding and cleanup contract is missing.'
+    $unixSignalSource = Get-Content -LiteralPath (Join-Path $projectRoot 'cmd\cowebs\process_signal_unix.go') -Raw -Encoding UTF8
+    Assert-True ($mainSource -match 'signal\.Notify\(interrupts, os\.Interrupt\)' -and $unixSignalSource -match 'Setpgid: true' -and $unixSignalSource -match 'syscall\.Kill\(processGroup, syscall\.SIGKILL\)') 'Linux process-group interruption and bounded cleanup contract is missing.'
 
     Write-Host 'PASS: Public cowebs CLI grammar, dispatch, completions, deterministic planning, and exit contracts.' -ForegroundColor Green
 } finally {

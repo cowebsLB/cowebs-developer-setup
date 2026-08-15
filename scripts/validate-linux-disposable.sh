@@ -195,7 +195,7 @@ run_matrix_story() {
     exit 1
   fi
   kill -INT -- "-$process_id" 2>/dev/null || kill -INT "$process_id" 2>/dev/null || true
-  for _ in {1..100}; do
+  for _ in {1..200}; do
     if ! kill -0 "$process_id" 2>/dev/null; then break; fi
     sleep 0.1
   done

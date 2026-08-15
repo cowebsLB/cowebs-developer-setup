@@ -57,7 +57,7 @@ All notable changes follow semantic versioning.
 ### Fixed
 
 - Fixed Linux bootstrap catalog discovery by searching the user XDG data directory and added an exact PATH instruction when `$HOME/.local/bin` is not active.
-- Forwarded Ctrl+C to the elevated Linux installer before cleanup so interruption state remains resumable and temporary canonical-plan files do not leak.
+- Forwarded Ctrl+C to the elevated Linux installer process group with a bounded hard-stop before cleanup so interruption state remains resumable and temporary canonical-plan files do not leak.
 - Rejected mutable `raw.githubusercontent.com` default-branch artifact URLs in addition to GitHub blob URLs.
 
 - Corrected Fedora Node.js to the cross-release `nodejs24` package and made OpenJDK 21 and scrcpy fail closed because official Fedora 43/44 repositories do not preserve those exact providers across the supported matrix.
