@@ -120,10 +120,14 @@ with open(sys.argv[1], encoding="utf-8") as stream:
 completed = state.get("completedOperations", [])
 skipped = state.get("skippedOperations", [])
 failed = state.get("failedOperations", [])
+statuses = state.get("operationStatus", {})
 if failed:
     raise SystemExit(f"completed state retains failures: {failed}")
-if len(completed) + len(skipped) != state.get("totalOperations"):
-    raise SystemExit("not every operation reached a terminal success/skip state")
+if len(statuses) != state.get("totalOperations"):
+    raise SystemExit("not every operation has a recorded final state")
+unexpected = {operation: status for operation, status in statuses.items() if status not in {"succeeded", "skipped", "planned"}}
+if unexpected:
+    raise SystemExit(f"operations retain non-final state: {unexpected}")
 if sys.argv[2] == "true" and "install:git" not in skipped:
     raise SystemExit("partial-host validation did not skip preinstalled Git")
 PY
