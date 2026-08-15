@@ -270,13 +270,24 @@ PY
   assert_complete_state "$interrupted/state.json" true
   assert_journal_redacted "$interrupted/session.jsonl"
 
-  if command -v snap >/dev/null && snap list powershell >/dev/null 2>&1; then
-    sudo snap remove powershell
-  fi
-  if snap list powershell >/dev/null 2>&1; then
-    echo 'failed to remove the planned PowerShell Snap before the isolated-network scenario' >&2
-    exit 1
-  fi
+  case "$platform" in
+    ubuntu)
+      sudo apt-get remove -y 7zip
+      sudo apt-get clean
+      if dpkg-query -W -f='${db:Status-Abbrev}' 7zip 2>/dev/null | grep -q '^ii '; then
+        echo 'failed to remove the planned 7zip APT package before the isolated-network scenario' >&2
+        exit 1
+      fi
+      ;;
+    fedora)
+      sudo dnf -y remove 7zip
+      sudo dnf clean packages
+      if rpm -q 7zip >/dev/null 2>&1; then
+        echo 'failed to remove the planned 7zip DNF package before the isolated-network scenario' >&2
+        exit 1
+      fi
+      ;;
+  esac
 
   local network="$session_root/network-failure"
   mkdir -p "$network"
