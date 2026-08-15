@@ -200,7 +200,6 @@ run_core_story() {
 }
 
 run_matrix_story() {
-  command -v setsid >/dev/null
   command -v unshare >/dev/null
   command -v python3 >/dev/null
   "$cowebs_binary" doctor dev-setup --packages "$package_catalog" --profiles "$profile_catalog" --json
@@ -213,36 +212,52 @@ run_matrix_story() {
   local interrupted="$session_root/interrupted"
   mkdir -p "$interrupted"
   write_expected_plan "$interrupted/expected-plan.json"
-  setsid "$cowebs_binary" install dev-setup "${common_plan_arguments[@]}" --non-interactive --no-config --no-restart --journal "$interrupted/session.jsonl" --state "$interrupted/state.json" --plan-out "$interrupted/canonical-plan.json" >"$interrupted/stdout.log" 2>"$interrupted/stderr.log" &
-  local process_id=$!
-  local observed_started=0
-  for _ in {1..300}; do
-    if [[ -f "$interrupted/session.jsonl" ]] && grep -q '"status":"started"' "$interrupted/session.jsonl"; then
-      observed_started=1
-      break
-    fi
-    if ! kill -0 "$process_id" 2>/dev/null; then
-      break
-    fi
-    sleep 0.1
-  done
-  if [[ "$observed_started" != '1' ]]; then
-    wait "$process_id" || true
-    echo 'installation exited before an interruptible operation started' >&2
-    exit 1
-  fi
-  kill -INT -- "-$process_id" 2>/dev/null || kill -INT "$process_id" 2>/dev/null || true
-  for _ in {1..200}; do
-    if ! kill -0 "$process_id" 2>/dev/null; then break; fi
-    sleep 0.1
-  done
-  if kill -0 "$process_id" 2>/dev/null; then
-    kill -KILL -- "-$process_id" 2>/dev/null || true
-  fi
-  set +e
-  wait "$process_id"
-  local interrupted_exit=$?
-  set -e
+  python3 - "$interrupted" "$cowebs_binary" "${common_plan_arguments[@]}" <<'PY'
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+
+root = Path(sys.argv[1])
+command = [sys.argv[2], "install", "dev-setup", *sys.argv[3:], "--non-interactive", "--no-config", "--no-restart",
+           "--journal", str(root / "session.jsonl"), "--state", str(root / "state.json"),
+           "--plan-out", str(root / "canonical-plan.json")]
+with (root / "stdout.log").open("wb") as stdout, (root / "stderr.log").open("wb") as stderr:
+    process = subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=True)
+    observed = False
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline and process.poll() is None:
+        journal = root / "session.jsonl"
+        if journal.exists():
+            for line in journal.read_text(encoding="utf-8").splitlines():
+                try:
+                    if json.loads(line).get("status") == "started":
+                        observed = True
+                        break
+                except json.JSONDecodeError:
+                    continue
+        if observed:
+            break
+        time.sleep(0.1)
+    if not observed:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+        raise SystemExit("installation exited before an interruptible operation started")
+    os.killpg(process.pid, signal.SIGINT)
+    try:
+        exit_code = process.wait(timeout=25)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        exit_code = process.wait()
+        print("installation required supervisor SIGKILL after the interrupt bound", file=sys.stderr)
+(root / "exit-code.txt").write_text(str(exit_code), encoding="ascii")
+PY
+  local interrupted_exit
+  interrupted_exit="$(<"$interrupted/exit-code.txt")"
   if [[ "$interrupted_exit" == '0' ]]; then
     echo 'interrupted installation unexpectedly succeeded' >&2
     exit 1
@@ -258,8 +273,8 @@ run_matrix_story() {
   if command -v snap >/dev/null && snap list powershell >/dev/null 2>&1; then
     sudo snap remove powershell
   fi
-  if command -v pwsh >/dev/null 2>&1; then
-    echo 'failed to remove PowerShell before the isolated-network scenario' >&2
+  if snap list powershell >/dev/null 2>&1; then
+    echo 'failed to remove the planned PowerShell Snap before the isolated-network scenario' >&2
     exit 1
   fi
 

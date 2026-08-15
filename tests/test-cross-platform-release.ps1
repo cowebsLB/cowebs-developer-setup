@@ -34,7 +34,7 @@ try {
     Assert-True ($wingetInstaller -notmatch '@(?:VERSION|WINDOWS_)' -and $wingetInstaller -match 'releases/download/v6\.3\.0-dev') 'Generated Winget manifest is not pinned to the verified Windows release artifact.'
     Assert-True ((Get-Content -LiteralPath (Join-Path $projectRoot 'scripts\validate-linux-disposable.sh') -Raw) -match 'COWEBS_DISPOSABLE') 'Disposable validation guard is missing.'
     $disposableHarness = Get-Content -LiteralPath (Join-Path $projectRoot 'scripts\validate-linux-disposable.sh') -Raw -Encoding UTF8
-    Assert-True ($disposableHarness -match 'unshare --net' -and $disposableHarness -match 'kill -INT' -and $disposableHarness -match 'assert_journal_redacted') 'Disposable failure/interruption/redaction matrix is incomplete.'
+    Assert-True ($disposableHarness -match 'unshare --net' -and $disposableHarness -match 'os\.killpg\(process\.pid, signal\.SIGINT\)' -and $disposableHarness -match 'start_new_session=True' -and $disposableHarness -match 'assert_journal_redacted') 'Disposable failure/interruption/redaction matrix is incomplete.'
     Assert-True ($disposableHarness -match 'operationStatus' -and $disposableHarness -match '"succeeded", "skipped", "planned"') 'Disposable completion assertion must cover final detect and install states.'
     Write-Host 'PASS: Cross-platform binaries, immutable bootstrap, manifest, checksums, SBOM, and native packaging contracts.' -ForegroundColor Green
 } finally {
